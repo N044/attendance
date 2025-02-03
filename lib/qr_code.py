@@ -1,11 +1,11 @@
-import subprocess
-import sys
 import qrcode
 import datetime
 from io import BytesIO
 import cv2
 from PIL import Image
 import streamlit as st
+import numpy as np
+from pyzbar.pyzbar import decode  # Import pyzbar for QR decoding
 
 # Fungsi untuk menghasilkan QR Code harian
 def generate_daily_qr_code(secret_key):
@@ -22,7 +22,6 @@ def generate_daily_qr_code(secret_key):
 
 # Fungsi untuk memindai QR Code
 def scan_qr_code():
-    
     cap = cv2.VideoCapture(0)  # Gunakan kamera default (index 0)
 
     if not cap or not cap.isOpened():
@@ -50,8 +49,10 @@ def scan_qr_code():
             break
 
         # Konversi frame ke RGB untuk ditampilkan di Streamlit
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        decoded_objects = qrcode.decode(Image.fromarray(frame))
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Decode QR Code menggunakan pyzbar
+        decoded_objects = decode(frame_rgb)
 
         # Jika QR Code ditemukan
         if decoded_objects:
@@ -60,7 +61,7 @@ def scan_qr_code():
             break
 
         # Tampilkan frame di Streamlit (hanya satu frame yang diperbarui)
-        frame_placeholder.image(frame, caption="Arahkan kamera ke QR Code", use_column_width=True)
+        frame_placeholder.image(frame_rgb, caption="Arahkan kamera ke QR Code", use_container_width=True)
 
     # Tutup kamera setelah selesai
     cap.release()

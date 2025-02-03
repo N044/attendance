@@ -3,7 +3,7 @@ import sys
 import qrcode
 import datetime
 from io import BytesIO
-from pyzbar.pyzbar import decode
+# from pyzbar.pyzbar import decode
 import cv2
 from PIL import Image
 import streamlit as st
@@ -52,7 +52,7 @@ def scan_qr_code():
 
         # Konversi frame ke RGB untuk ditampilkan di Streamlit
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        decoded_objects = decode(Image.fromarray(frame))
+        decoded_objects = qrcode.decode(Image.fromarray(frame))
 
         # Jika QR Code ditemukan
         if decoded_objects:

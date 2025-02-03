@@ -3,7 +3,6 @@ pandas
 bcrypt
 datetime
 opencv-python
-pyzbar
 pillow
 qrcode
 numpy

@@ -4,7 +4,7 @@ import bcrypt
 import datetime
 import os
 
-from qr_code import generate_daily_qr_code, scan_qr_code
+from qr_code import generate_daily_qr_code, scan_qr_code 
 from attendance import save_attendance, show_attendance_history
 from utils import logout
 

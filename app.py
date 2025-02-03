@@ -3,8 +3,8 @@ import pandas as pd
 import bcrypt
 import datetime
 import os
-import qr_code
-import attendance 
+
+from lib import qr_code, attendance
 
 # Simulasi pengguna dengan password yang sudah di-hash
 users = {

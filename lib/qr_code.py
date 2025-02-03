@@ -3,7 +3,6 @@ import sys
 import qrcode
 import datetime
 from io import BytesIO
-# from pyzbar.pyzbar import decode
 import cv2
 from PIL import Image
 import streamlit as st

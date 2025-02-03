@@ -3,10 +3,8 @@ import pandas as pd
 import bcrypt
 import datetime
 import os
-
-from qr_code import generate_daily_qr_code, scan_qr_code 
-from attendance import save_attendance, show_attendance_history
-from utils import logout
+import qr_code
+import attendance 
 
 # Simulasi pengguna dengan password yang sudah di-hash
 users = {
@@ -61,7 +59,7 @@ else:
         with st.sidebar:
             st.title(f"Welcome, {st.session_state.username}")
             secret_key = "my_secret_key"
-            qr_buffer, qr_code_data = generate_daily_qr_code(secret_key)
+            qr_buffer, qr_code_data = qr_code.generate_daily_qr_code(secret_key)
             st.subheader("Today QR")
             st.image(qr_buffer, caption="(Berubah Setiap Hari)")
             st.write("QR Code ID :", qr_code_data)
@@ -112,7 +110,7 @@ else:
             if not st.session_state.is_admin:  # Hanya tampilkan riwayat absensi untuk pengguna biasa
                 st.header("Riwayat Absensi")
                 username = st.session_state.username
-                df_user = show_attendance_history(username)
+                df_user = attendance.show_attendance_history(username)
                 if not df_user.empty:
                     st.dataframe (df_user, width=322, height=107)
                 else:
@@ -130,20 +128,20 @@ else:
         # Jika keterangan Sakit atau Izin, tampilkan tombol simpan data
         if jadwal in ['Sakit', 'Izin']:
             if st.button("Save"):
-                save_attendance(username, hari, jadwal, current_time, "Tidak ada QR Code")
+                attendance.save_attendance(username, hari, jadwal, current_time, "Tidak ada QR Code")
                 st.success("Data absensi berhasil disimpan!")
                 st.rerun()  # Memaksa halaman untuk me-refresh
         else:
             # Jika keterangan Hadir, tampilkan opsi untuk scan QR Code
             st.subheader("Scan QR Code")
             if st.button("Mulai Scan QR Code"):
-                qr_code_data = scan_qr_code()
+                qr_code_data = qr_code.scan_qr_code()
 
                 if qr_code_data:
                     secret_key = "my_secret_key"
-                    _, expected_qr_code = generate_daily_qr_code(secret_key)
+                    _, expected_qr_code = qr_code.generate_daily_qr_code(secret_key)
                     if qr_code_data == expected_qr_code:
-                        save_attendance(username, hari, jadwal, current_time, qr_code_data)
+                        attendance.save_attendance(username, hari, jadwal, current_time, qr_code_data)
                         st.success("Data absensi berhasil disimpan!")
                         st.rerun()  # Memaksa halaman untuk me-refresh
                     else:

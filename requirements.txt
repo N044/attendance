@@ -2,7 +2,7 @@ streamlit
 pandas
 bcrypt
 datetime
-opencv-python
+opencv-python-headless==4.5.3.56  # or the latest compatible version
 pillow
 qrcode
 numpy

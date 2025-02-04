@@ -32,7 +32,7 @@ def logout():
     st.rerun()  # Refresh halaman setelah logout
 
 # Define the allowed location (latitude, longitude)
-ALLOWED_LOCATION = (3.5833, 98.6667)  # Example: coordinates of a specific location
+ALLOWED_LOCATION = (3.5833, 98.6667),  # Example: coordinates of a specific location
 ALLOWED_LOCATION = (45.5946, -121.1787)  # Example: coordinates of a specific location
 
 # Function to get the user's current location
@@ -48,11 +48,12 @@ def is_within_allowed_location(user_location, allowed_location, threshold=0.01):
 
 # Halaman Login
 if not st.session_state.is_logged_in:
-    st.title("Login")
+    st.title("Universitas Mikroskil | Live Attendance System (LAS)")
+    st.subheader("By Student Affairs Office")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-    if st.button("Login"):
+    if st.button("Login", use_container_width=True):
         if username in users:
             if check_password(users[username]["password"], password):
                 st.session_state.is_logged_in = True
@@ -69,7 +70,7 @@ else:
     if st.session_state.is_admin:
         # Halaman Admin
         st.title(f"Universitas Mikroskil")
-        st.subheader("Student Affairs Office - Attendance System")
+        st.subheader("Live Attendance System (LAS) by Student Affairs Office")
 
         # Sidebar
         with st.sidebar:
@@ -85,6 +86,7 @@ else:
             df_absensi = pd.read_csv(file_path)
             if not df_absensi.empty:
                 # Edit Attendance Data
+                st.subheader("Data Absensi 🖨")
                 edited_df = st.data_editor(df_absensi, key="editable_table", width=700)
 
                 # Save Changes Button
@@ -108,13 +110,13 @@ else:
     else:
         # Halaman Pengguna
         st.title(f"Universitas Mikroskil")
-        st.subheader("Student Affairs Office - Attendance System")
+        st.subheader("Student Affairs Office Live Attendance System")
         
         # Sidebar
         with st.sidebar:
             st.title(f"Welcome, {st.session_state.username}")
             if not st.session_state.is_admin:  # Hanya tampilkan riwayat absensi untuk pengguna biasa
-                st.header("Riwayat Absensi")
+                st.header("📝 Attendance log ")
                 username = st.session_state.username
                 df_user = attendance.show_attendance_history(username)
                 if not df_user.empty:
@@ -135,7 +137,7 @@ else:
         if current_location:
             current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             st.write("Waktu Absensi:", current_time)
-            st.write(f"Your current location is: {current_location}")
+            st.write(f"Current location: {current_location}")
         
         # Handle "Hadir" case with location check only when user clicks the save button
         if jadwal == "Hadir":
@@ -144,7 +146,7 @@ else:
                     st.info("You are in the allowed location. Proceed with attendance.")
                     
                     # Show Save Attendance button
-                    if st.button("Save Attendance", use_container_width=True):
+                    if st.button("Clock In / Out", use_container_width=True):
                         attendance.save_attendance(st.session_state.username, hari, jadwal, current_time, current_location)
                         st.success("Data absensi berhasil disimpan!")
                         st.rerun()  # Refresh the page to reflect the changes
@@ -155,7 +157,7 @@ else:
         
         # For "Sakit" and "Izin", just save the attendance with no location check
         else:
-            if st.button("Save Attendance", use_container_width=True):
+            if st.button("Clock In / Out", use_container_width=True):
                 attendance.save_attendance(st.session_state.username, hari, jadwal, current_time, current_location)
                 st.success("Data absensi berhasil disimpan!")
                 st.rerun()

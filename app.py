@@ -49,7 +49,7 @@ def is_within_allowed_location(user_location, allowed_location, threshold=0.01):
 # Halaman Login
 if not st.session_state.is_logged_in:
     st.title("Universitas Mikroskil | Live Attendance System (LAS)")
-    st.subheader("By Student Affairs Office")
+    st.caption("By Student Affairs Office")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
@@ -70,7 +70,7 @@ else:
     if st.session_state.is_admin:
         # Halaman Admin
         st.title(f"Universitas Mikroskil")
-        st.subheader("Live Attendance System (LAS) by Student Affairs Office")
+        st.caption("Live Attendance System (LAS) by Student Affairs Office")
 
         # Sidebar
         with st.sidebar:
@@ -110,7 +110,7 @@ else:
     else:
         # Halaman Pengguna
         st.title(f"Universitas Mikroskil")
-        st.subheader("Student Affairs Office Live Attendance System")
+        st.caption("Live Attendance System (LAS) by Student Affairs Office")
         
         # Sidebar
         with st.sidebar:

@@ -2,7 +2,7 @@ streamlit
 pandas
 bcrypt
 datetime
-opencv-python
+geocoder
 pillow
-qrcode
 numpy
+pyotp

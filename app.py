@@ -15,8 +15,8 @@ users = {
 }
 
 # Define allowed location (Latitude, Longitude)
-ALLOWED_LOCATION = (3.584020034856336, 98.64739611799341)  # Rumah
-# ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Universitas Mikroskil - Gedung C
+# ALLOWED_LOCATION = (3.584020034856336, 98.64739611799341)  # Rumah
+ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Universitas Mikroskil - Gedung C
 
 # Function to check if the user's location is within an acceptable range
 def is_within_allowed_location(user_location, allowed_location, threshold=0.0005):

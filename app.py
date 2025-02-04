@@ -33,6 +33,7 @@ def logout():
 
 # Define the allowed location (latitude, longitude)
 ALLOWED_LOCATION = (3.5833, 98.6667)  # Example: coordinates of a specific location
+ALLOWED_LOCATION = (45.5946, -121.1787)  # Example: coordinates of a specific location
 
 # Function to get the user's current location
 def get_user_location():
@@ -51,7 +52,7 @@ if not st.session_state.is_logged_in:
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-    if st.button("Login", use_container_width=True):
+    if st.button("Login"):
         if username in users:
             if check_password(users[username]["password"], password):
                 st.session_state.is_logged_in = True

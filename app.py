@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import bcrypt
 import datetime
+import pytz
 import os
 import time
 import random
@@ -187,7 +188,8 @@ else:
 
         if location:
             current_location = (location["coords"]["latitude"], location["coords"]["longitude"])
-            current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            jakarta_tz = pytz.timezone('Asia/Jakarta')
+            current_time = datetime.datetime.now(jakarta_tz).strftime("%Y-%m-%d %H:%M:%S")
 
             # **Fixing Spacing**: Place "Hari" and "Keterangan" in a row
             col1, col2 = st.columns(2)

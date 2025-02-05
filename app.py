@@ -6,6 +6,7 @@ import os
 import time
 from streamlit_js_eval import get_geolocation  # Import for GPS-based location
 from lib import attendance
+from lib import fingerprint
 
 # Simulasi pengguna dengan password yang sudah di-hash
 users = {
@@ -15,8 +16,10 @@ users = {
 }
 
 # Define allowed location (Latitude, Longitude)
-# ALLOWED_LOCATION = (3.584020034856336, 98.64739611799341)  # Rumah
-ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Universitas Mikroskil - Gedung C
+ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667)  # Universitas Mikroskil - Gedung C
+
+# Path for storing fingerprint data
+FINGERPRINT_DB = 'data/fingerprint_db.csv'
 
 # Function to check if the user's location is within an acceptable range
 def is_within_allowed_location(user_location, allowed_location, threshold=0.0005):
@@ -38,12 +41,23 @@ if not st.session_state.is_logged_in:
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
+    # Login process
     if st.button("Login", use_container_width=True):
         if username in users:
             if bcrypt.checkpw(password.encode('utf-8'), users[username]["password"]):
                 st.session_state.is_logged_in = True
                 st.session_state.username = username
                 st.session_state.is_admin = users[username]["isAdmin"]
+                
+                # Check if fingerprint is registered for regular users
+                if not st.session_state.is_admin:
+                    if not fingerprint.verify_fingerprint(username):  # If not registered, prompt for registration
+                        fingerprint_data = fingerprint.register_fingerprint(username)
+                        if fingerprint_data:
+                            st.success("Fingerprint registered successfully!")
+                        else:
+                            st.error("Fingerprint registration failed. Please try again.")
+                
                 st.success("Login berhasil!")
                 st.rerun()
             else:
@@ -127,7 +141,7 @@ else:
             message = ""
             if jadwal in ['Sakit', 'Izin']:
                 message = st.text_area("Message (Optional)")
-            
+
             # **Fixing Spacing**: Display location **next to** the dropdowns
             with st.container():
                 st.write(f"📍 **Your Location:** {current_location}")

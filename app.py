@@ -92,7 +92,7 @@ if not st.session_state.is_logged_in:
 
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    otp = st.text_input("OTP", type="password")
+    otp = st.text_input("OTP (One Time Password)", type="password")
     
     if st.button("Login", use_container_width=True):
         if username in users:

@@ -12,7 +12,10 @@ from lib import attendance
 users = {
     "user1": {"password": bcrypt.hashpw(b"password123", bcrypt.gensalt()), "isAdmin": False},
     "user2": {"password": bcrypt.hashpw(b"anotherpassword", bcrypt.gensalt()), "isAdmin": False},
-    "admin": {"password": bcrypt.hashpw(b"admin123", bcrypt.gensalt()), "isAdmin": True}
+    "admin": {"password": bcrypt.hashpw(b"admin123", bcrypt.gensalt()), "isAdmin": True},
+    "Noah": {"password": bcrypt.hashpw(b"admin123", bcrypt.gensalt()), "isAdmin": True},
+    "Evelyn": {"password": bcrypt.hashpw(b"admin123", bcrypt.gensalt()), "isAdmin": True},
+    "Tommy": {"password": bcrypt.hashpw(b"admin123", bcrypt.gensalt()), "isAdmin": True}
 }
 
 # Define allowed location (Latitude, Longitude)

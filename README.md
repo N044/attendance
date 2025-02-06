@@ -38,7 +38,7 @@ Built with **Streamlit** and deployed on **Streamlit Cloud**, this system is opt
 
 ## 🔑 Usage
 1. **Attendance check-in** – Users verify their location and confirm check-in.
-2. **Admin verification** – Admins can review attendance records via a dashboard & provide OTP Code for every account.
+2. **Admin verification** – Admins can view/edit attendance records via a dashboard & provide OTP Code.
 
 ## 📌 Future Enhancements
 - ✅ Implement facial recognition for additional security.

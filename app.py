@@ -188,7 +188,7 @@ else:
                 confirm_password = st.text_input("Konfirmasi Password", type="password")
                 is_admin = st.checkbox("Jadikan Admin")
 
-                if st.button("Create User"):
+                if st.button("Create User", use_container_width=True):
                     if new_password != confirm_password:
                         st.error("Password tidak cocok")
                         st.stop()
@@ -203,9 +203,44 @@ else:
                         st.success("User berhasil dibuat")
                         st.rerun()
 
-            if st.button("Logout"):
+            if st.button("Logout", use_container_width=True):
                 st.session_state.clear()
                 st.rerun()
+
+    # ================= ANALYTICS =================
+        st.divider()
+        st.subheader("📊 Analytics Dashboard")
+
+        summary, status, trend = attendance.get_analytics()
+
+        if summary is None:
+            st.info("Belum ada data analytics")
+        else:
+
+            # ===== SUMMARY =====
+            st.markdown("### 👤 Summary Per User")
+            st.dataframe(summary, use_container_width=True)
+
+            # ===== STATUS =====
+            st.markdown("### 📌 Status Distribution")
+            pivot_status = status.pivot(
+                index="Username",
+                columns="Keterangan",
+                values="Jumlah"
+            ).fillna(0)
+
+            st.dataframe(pivot_status, use_container_width=True)
+
+            # ===== TREND =====
+            st.markdown("### 📈 Daily Working Hours")
+
+            trend_chart = trend.pivot(
+                index="Tanggal",
+                columns="Username",
+                values="Jam"
+            ).fillna(0)
+
+            st.line_chart(trend_chart)
 
     # ================= USER =================
     else:

@@ -250,9 +250,12 @@ else:
 
             history = attendance.show_attendance_history(st.session_state.username)
             if not history.empty:
-                st.dataframe(history)
+                st.subheader("📜 Riwayat Absensi")
+                st.dataframe(history, use_container_width=True)
+            else:
+                st.info("Belum ada riwayat absensi.")
 
-            if st.button("Logout"):
+            if st.button("Logout", use_container_width=True):
                 st.session_state.clear()
                 st.rerun()
 

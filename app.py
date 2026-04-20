@@ -246,7 +246,7 @@ else:
     else:
 
         with st.sidebar:
-            st.title(f"Welcome, {st.session_state.username}")
+            st.title(f"Welcome, {st.session_state.username} 👋🏼")
 
             history = attendance.show_attendance_history(st.session_state.username)
             if not history.empty:

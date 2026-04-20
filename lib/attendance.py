@@ -278,7 +278,7 @@ def _clock_out(u, h, k, w, loc, msg, last):
         "Lokasi": str(loc),
         "Pesan": msg or "",
         "Type": "OUT",
-        "Duration": f"{duration} jam"
+        "Duration": f"{duration} Jam"
     }
 
     return "clock_out" if insert_record(payload) else "failed"

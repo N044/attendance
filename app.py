@@ -259,6 +259,8 @@ else:
                 st.session_state.clear()
                 st.rerun()
 
+        #================== GEOLOCATION ===================
+
         location = get_geolocation()
 
         if not location or "coords" not in location:
@@ -270,11 +272,25 @@ else:
 
         current_location = (lat, lon)
 
+        #======== TIME & DATE ========
+
         tz = pytz.timezone('Asia/Jakarta')
         now = datetime.datetime.now(tz)
         current_time = now.strftime("%Y-%m-%d %H:%M:%S")
 
-        hari = now.strftime("%A")
+        hari_map = {
+            "Monday": "Senin",
+            "Tuesday": "Selasa",
+            "Wednesday": "Rabu",
+            "Thursday": "Kamis",
+            "Friday": "Jumat",
+            "Saturday": "Sabtu",
+            "Sunday": "Minggu"
+        }
+
+        hari = hari_map.get(now.strftime("%A"))
+
+        #======== STATUS CHECK ========
 
         df_today = attendance.get_today_attendance(st.session_state.username)
 
@@ -286,32 +302,42 @@ else:
             if last.get("Type") == "IN":
                 st.warning(f"🟡 Sudah Clock In sejak {last.get('Waktu')}")
             elif last.get("Type") == "OUT":
-                st.success("✅ Sudah Clock Out")
-                st.info(f"Durasi: {last.get('Duration', '-')}")
+                st.info(f"🕰️ Total Durasi: {last.get('Duration', '-')}")
 
         # ===== RESULT =====
         result = st.session_state.get("last_result")
         if result:
-            st.divider()
 
             if result == "clock_in":
                 st.success("✅ Clock In berhasil!")
             elif result == "clock_out":
                 st.success("✅ Clock Out berhasil!")
             elif result == "already_clocked_out":
-                st.warning("⚠ Sudah Clock Out")
+                st.warning(f"❗️Hari Ini (**{last.get('Hari', '-')}**), Sudah Clock Out")
             elif result == "already_clocked_in":
                 st.warning("⚠ Sudah Clock In")
             elif result == "no_clock_out_needed":
-                st.info("ℹ Tidak perlu Clock Out")
+                st.info("ℹ Sakit / Izin, tidak perlu Clock Out.")
 
             st.session_state.last_result = None
 
-        jadwal = st.selectbox("Keterangan", ["Hadir", "Sakit", "Izin"])
-        message = st.text_input("Alasan") if jadwal == "Izin" else ""
+        # ======== FORM ========
+        
 
-        if st.button("Clock In / Out"):
-            with st.spinner("Memproses..."):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.text_input("📅 Hari", value=hari, disabled=True)
+        
+        with col2:
+            jadwal = st.selectbox("Keterangan", ["Hadir", "Sakit", "Izin"])
+
+        message = ""
+        if jadwal in ["Izin"]:
+            message = st.text_area("Alasan Izin (wajib)")
+
+        if st.button("Clock In / Out", use_container_width=True):
+            with st.spinner("Memproses Absensi..."):
+                time.sleep(1)  # Simulate processing time
                 st.session_state.last_result = attendance.save_attendance(
                     st.session_state.username,
                     hari,

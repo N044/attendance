@@ -341,6 +341,17 @@ else:
             message = st.text_area("Alasan Izin (wajib)")
 
         if st.button("Clock In / Out", use_container_width=True):
+
+            # 🔒 HARDENING: pastikan lokasi ada
+            if lat is None or lon is None:
+                st.error("❌ Lokasi belum terdeteksi.")
+                st.stop()
+
+            # 🔒 VALIDASI LOKASI (WAJIB)
+            if not is_within_allowed_location(current_location, ALLOWED_LOCATION):
+                st.error("❌ Anda tidak berada di lokasi yang diizinkan.")
+                st.stop()
+
             with st.spinner("Memproses Absensi..."):
                 time.sleep(1)  # Simulate processing time
                 st.session_state.last_result = attendance.save_attendance(

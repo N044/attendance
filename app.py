@@ -14,8 +14,7 @@ def init_admin():
 init_admin()
 
 # ================= LOCATION =================
-# ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Lokasi Kantor Pusat Mikroskil
-ALLOWED_LOCATION = (3.584025, 98.646898) # Lokasi Rumah
+ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Lokasi Kantor Pusat Mikroskil
 
 def is_within_allowed_location(user_location, allowed_location, threshold=0.0005):
     lat_diff = abs(user_location[0] - allowed_location[0])

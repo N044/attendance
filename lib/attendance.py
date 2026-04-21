@@ -19,14 +19,21 @@ def fetch_users():
 
 def get_user(username):
     data = request("GET", cfg["TABLE_USERS"])
+
     if not data:
         return None
 
     for r in data.get("records", []):
-        f = r.get("fields", {})
-        if f.get("Username") == username:
-            f["id"] = r.get("id")
-            return f
+        fields = r.get("fields", {})
+
+        if fields.get("Username") == username:
+            fields["id"] = r["id"]
+
+            # 🔥 AUTO REFRESH OTP
+            fields["OTP"] = ensure_daily_otp(fields)
+
+            return fields
+
     return None
 
 
@@ -45,32 +52,96 @@ def update_user(record_id, fields):
 
 # ================= OTP =================
 
-def generate_otp_for_user(username):
+# def generate_otp_for_user(username):
+#     user = get_user(username)
+#     if not user:
+#         return None
+
+#     today = datetime.now().strftime("%Y-%m-%d")
+
+#     if user.get("OTP") and str(user.get("OTP_Date")) == today:
+#         return user.get("OTP")
+
+#     new_otp = str(random.randint(100000, 999999))
+
+#     update_user(user["id"], {
+#         "OTP": new_otp,
+#         "OTP_Date": today
+#     })
+
+#     return new_otp
+
+def ensure_daily_otp(user):
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    otp = user.get("OTP")
+    otp_date = str(user.get("OTP_Date", ""))
+
+    if not otp or otp_date != today:
+        new_otp = str(random.randint(100000, 999999))  # ✅ 6 digit
+
+        update_user(user["id"], {
+            "OTP": new_otp,
+            "OTP_Date": today
+        })
+
+        return new_otp
+
+    return otp
+
+def validate_otp(username, otp_input):
     user = get_user(username)
+
     if not user:
-        return None
+        return False
+
+    return str(user.get("OTP")) == str(otp_input)
+
+def sync_all_user_otp():
+    data = request("GET", cfg["TABLE_USERS"])
+
+    if not data:
+        return
 
     today = datetime.now().strftime("%Y-%m-%d")
 
-    if user.get("OTP") and str(user.get("OTP_Date")) == today:
-        return user.get("OTP")
+    updates = []
 
-    new_otp = str(random.randint(1000, 9999))
+    for r in data.get("records", []):
+        fields = r.get("fields", {})
 
-    update_user(user["id"], {
-        "OTP": new_otp,
-        "OTP_Date": today
-    })
+        otp_date = str(fields.get("OTP_Date", ""))
 
-    return new_otp
+        if otp_date != today:
+            new_otp = str(random.randint(100000, 999999))
 
+            updates.append({
+                "id": r["id"],
+                "fields": {
+                    "OTP": new_otp,
+                    "OTP_Date": today
+                }
+            })
 
-def validate_otp(username, otp_input):
-    otp_real = generate_otp_for_user(username)
-    if not otp_real:
+    # batch update (maks 10 per request Airtable)
+    for i in range(0, len(updates), 10):
+        batch = updates[i:i+10]
+
+        request(
+            "PATCH",
+            cfg["TABLE_USERS"],
+            json={"records": batch}
+        )
+
+def is_today_synced():
+    df = fetch_users()
+
+    if df.empty:
         return False
-    return str(otp_real) == str(otp_input)
 
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    return all(str(x) == today for x in df.get("OTP_Date", []))
 
 # ================= PASSWORD =================
 
@@ -124,7 +195,7 @@ def create_user_airtable(username, password, is_admin=False):
     }
 
     if not is_admin:
-        payload["OTP"] = str(random.randint(1000, 9999))
+        payload["OTP"] = str(random.randint(100000, 999999))
         payload["OTP_Date"] = datetime.now().strftime("%Y-%m-%d")
 
     success = insert_user(payload)

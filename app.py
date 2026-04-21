@@ -98,6 +98,11 @@ if not st.session_state.is_logged_in:
             # SUCCESS
             st.session_state.login_attempt = 0
             st.session_state.is_logged_in = True
+
+            # ANTI SPAM API - SYNC OTP HARIAN
+            if not attendance.is_today_synced():
+                attendance.sync_all_user_otp()
+
             st.session_state.username = username
             st.session_state.is_admin = user.get("IsAdmin", False)
 

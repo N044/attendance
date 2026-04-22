@@ -113,7 +113,7 @@ def create_user_airtable(username, password, is_admin=False):
 
     # 🔥 NON ADMIN → OTP LANGSUNG ADA
     if not is_admin:
-        payload["OTP"] = str(random.randint(100000, 999999))
+        payload["OTP"] = str(random.SystemRandom().randint(100000, 999999))
         payload["OTP_Date"] = datetime.now().strftime("%Y-%m-%d")
 
     success = insert_user(payload)
@@ -151,7 +151,7 @@ def ensure_daily_otp(user):
     if str(user.get("OTP_Date", "")) == today:
         return user.get("OTP")
 
-    new_otp = str(random.randint(100000, 999999))
+    new_otp = str(random.SystemRandom().randint(100000, 999999))
 
     update_user(user["id"], {
         "OTP": new_otp,
@@ -169,6 +169,10 @@ def validate_otp(username, otp_input):
     otp = ensure_daily_otp(user)
     return str(otp) == str(otp_input)
 
+def sync_otp_if_needed():
+    if not is_today_synced():
+        sync_all_user_otp()
+
 
 # ================= GLOBAL OTP SYNC =================
 
@@ -178,6 +182,10 @@ def is_today_synced():
         return False
 
     today = datetime.now().strftime("%Y-%m-%d")
+
+    if "OTP_Date" not in df.columns:
+        return False
+
     return (df["OTP_Date"].astype(str) == today).all()
 
 
@@ -195,7 +203,7 @@ def sync_all_user_otp():
             updates.append({
                 "id": row["id"],
                 "fields": {
-                    "OTP": str(random.randint(100000, 999999)),
+                    "OTP": str(random.SystemRandom().randint(100000, 999999)),
                     "OTP_Date": today
                 }
             })

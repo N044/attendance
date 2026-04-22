@@ -13,11 +13,11 @@ def init_admin():
 
 init_admin()
 
-@st.cache_data(ttl=3600)  # 1 jam sekali check
-def sync_otp_once():
-    attendance.generate_otp_for_all_users()
+@st.cache_data(ttl=3600)
+def init_otp():
+    attendance.sync_otp_if_needed()
 
-sync_otp_once()
+init_otp()
 
 # ================= LOCATION =================
 ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Lokasi Kantor Pusat Mikroskil

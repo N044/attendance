@@ -10,7 +10,7 @@ cfg = get_config()
 
 # ================= CACHE =================
 
-@st.cache_data(ttl=60)
+@st.cache_data(ttl=300)  # cache selama 5 menit
 def fetch_users():
     data = request("GET", cfg["TABLE_USERS"])
     if not data:
@@ -19,7 +19,7 @@ def fetch_users():
     return pd.DataFrame(rows)
 
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=120) # cache selama 2 menit
 def fetch_all():
     records = []
     offset = None
@@ -169,24 +169,25 @@ def validate_otp(username, otp_input):
     otp = ensure_daily_otp(user)
     return str(otp) == str(otp_input)
 
-def sync_otp_if_needed():
-    if not is_today_synced():
-        sync_all_user_otp()
-
 
 # ================= GLOBAL OTP SYNC =================
 
-def is_today_synced():
+def sync_otp_once_per_day():
     df = fetch_users()
     if df.empty:
-        return False
+        return
 
     today = datetime.now().strftime("%Y-%m-%d")
 
     if "OTP_Date" not in df.columns:
-        return False
+        sync_all_user_otp()
+        return
 
-    return (df["OTP_Date"].astype(str) == today).all()
+    # kalau sudah hari ini → STOP
+    if (df["OTP_Date"].astype(str) == today).all():
+        return
+
+    sync_all_user_otp()
 
 
 def sync_all_user_otp():
@@ -226,25 +227,13 @@ def insert_record(payload):
     return res is not None
 
 
-def get_today_attendance(username):
-    df = fetch_all()
+def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
 
-    if df.empty:
-        return df
-
-    today = datetime.now().strftime("%Y-%m-%d")
-
-    df = df[df["Type"] != "INIT"]
-
-    return df[
+    df_today = df[
         (df["Username"] == username) &
-        (df["Waktu"].astype(str).str.startswith(today))
+        (df["Type"] != "INIT") &
+        (df["Waktu"].astype(str).str.startswith(datetime.now().strftime("%Y-%m-%d")))
     ]
-
-
-def save_attendance(username, hari, ket, waktu, lokasi, pesan=""):
-
-    df_today = get_today_attendance(username)
 
     if not df_today.empty:
         last = df_today.iloc[0]
@@ -303,13 +292,15 @@ def _clock_out(u, h, k, w, loc, msg, last):
 
 # ================= ANALYTICS =================
 
-def get_analytics():
-    df = fetch_all()
+def get_analytics_from_df(df):
 
     if df.empty:
         return None, None, None
 
     df = df[df["Type"] != "INIT"]
+
+    if "Duration" not in df.columns:
+        df["Duration"] = "0"
 
     df["Duration"] = pd.to_numeric(
         df["Duration"].astype(str).str.replace(" Jam", ""),
@@ -333,10 +324,7 @@ def get_analytics():
 
     return summary, status, trend
 
-
-def show_attendance_history(username):
-    df = fetch_all()
-
+def show_attendance_history(df, username):
     if df.empty:
         return df
 

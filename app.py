@@ -4,6 +4,7 @@ import bcrypt
 import datetime
 import pytz
 import time
+from lib.attendance import get_analytics_from_df
 from streamlit_js_eval import get_geolocation
 from lib import attendance
 
@@ -13,11 +14,14 @@ def init_admin():
 
 init_admin()
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400)  # 24 jam
 def init_otp():
-    attendance.sync_otp_if_needed()
+    attendance.sync_otp_once_per_day()
 
 init_otp()
+
+df_all = attendance.fetch_all()
+df_users = attendance.fetch_users()
 
 # ================= LOCATION =================
 ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Lokasi Kantor Pusat Mikroskil
@@ -56,7 +60,7 @@ if not st.session_state.is_logged_in:
         password = st.text_input("Password", type="password")
         otp_input = st.text_input("OTP (One Time Password)", type="password")
 
-        if st.button("Login", use_container_width=True):
+        if st.button("Login", width="stretch"):
 
             user = attendance.get_user(username)
 
@@ -108,10 +112,6 @@ if not st.session_state.is_logged_in:
             st.session_state.login_attempt = 0
             st.session_state.is_logged_in = True
 
-            # ANTI SPAM API - SYNC OTP HARIAN
-            if not attendance.is_today_synced():
-                attendance.sync_all_user_otp()
-
             st.session_state.username = username
             st.session_state.is_admin = user.get("IsAdmin", False)
 
@@ -130,7 +130,7 @@ if not st.session_state.is_logged_in:
         col1, col2 = st.columns(2)
 
         with col1:
-            if st.button(" ✅ Reset Password", use_container_width=True):
+            if st.button(" ✅ Reset Password", width="stretch"):
 
                 if not reset_username or not reset_otp or not new_password:
                     st.error("Semua field wajib diisi", icon="⚠️")
@@ -159,7 +159,7 @@ if not st.session_state.is_logged_in:
                     st.error(msg)
 
         with col2:
-            if st.button("Kembali ke Login", use_container_width=True):
+            if st.button("Kembali ke Login", width="stretch"):
                 st.session_state.auth_mode = "login"
                 st.session_state.login_attempt = 0
                 st.rerun()
@@ -176,7 +176,7 @@ else:
     if st.session_state.is_admin:
 
         st.subheader("📜 Attendance Logs")
-        df = attendance.fetch_all()
+        df = df_all
 
         if not df.empty:
             st.dataframe(df)
@@ -187,14 +187,15 @@ else:
             st.title(f"Welcome, {st.session_state.username} 👋🏼")
 
             st.subheader("🔐 OTP Management")
-            df_users = attendance.fetch_users()
 
             if not df_users.empty:
+                display_df = df_users.copy()
+
                 display_cols = ["Username", "OTP", "OTP_Date"]
                 for col in display_cols:
-                    if col not in df_users.columns:
-                        df_users[col] = "-"
-                st.dataframe(df_users[display_cols])
+                    if col not in display_df.columns:
+                        display_df[col] = "-"
+                st.dataframe(display_df[display_cols])
 
             with st.expander("👤 User Management"):
                 new_username = st.text_input("Username Baru")
@@ -202,7 +203,7 @@ else:
                 confirm_password = st.text_input("Konfirmasi Password", type="password")
                 is_admin = st.checkbox("Jadikan Admin")
 
-                if st.button("Create User", use_container_width=True):
+                if st.button("Create User", width="stretch"):
                     if new_password != confirm_password:
                         st.error("Password tidak cocok")
                         st.stop()
@@ -217,7 +218,7 @@ else:
                         st.success("User berhasil dibuat")
                         st.rerun()
 
-            if st.button("Logout", use_container_width=True):
+            if st.button("Logout", width="stretch"):
                 st.session_state.clear()
                 st.rerun()
 
@@ -225,7 +226,7 @@ else:
         st.divider()
         st.subheader("📊 Analytics Dashboard")
 
-        summary, status, trend = attendance.get_analytics()
+        summary, status, trend = get_analytics_from_df(df_all)
 
         if summary is None:
             st.info("Belum ada data analytics")
@@ -233,7 +234,7 @@ else:
 
             # ===== SUMMARY =====
             st.markdown("### 👤 Summary Per User")
-            st.dataframe(summary, use_container_width=True)
+            st.dataframe(summary, width="stretch")
 
             # ===== STATUS =====
             st.markdown("### 📌 Status Distribution")
@@ -243,7 +244,7 @@ else:
                 values="Jumlah"
             ).fillna(0)
 
-            st.dataframe(pivot_status, use_container_width=True)
+            st.dataframe(pivot_status, width="stretch")
 
             # ===== TREND =====
             st.markdown("### 📈 Daily Working Hours")
@@ -262,14 +263,16 @@ else:
         with st.sidebar:
             st.title(f"Welcome, {st.session_state.username} 👋🏼")
 
-            history = attendance.show_attendance_history(st.session_state.username)
+            df_user = df_all[df_all["Username"] == st.session_state.username]
+
+            history = df_user[df_user["Type"] != "INIT"].sort_values("Waktu", ascending=False)
             if not history.empty:
                 st.subheader("📜 Riwayat Absensi")
-                st.dataframe(history, use_container_width=True)
+                st.dataframe(history, width="stretch")
             else:
                 st.info("Belum ada riwayat absensi.")
 
-            if st.button("Logout", use_container_width=True):
+            if st.button("Logout", width="stretch"):
                 st.session_state.clear()
                 st.rerun()
 
@@ -306,7 +309,8 @@ else:
 
         #======== STATUS CHECK ========
 
-        df_today = attendance.get_today_attendance(st.session_state.username)
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        df_today = df_user[df_user["Waktu"].astype(str).str.startswith(today)]
 
         if df_today.empty:
             st.info("ℹ️ Belum ada aktivitas hari ini")
@@ -349,7 +353,7 @@ else:
         if jadwal in ["Izin"]:
             message = st.text_area("Alasan Izin (wajib)")
 
-        if st.button("Clock In / Out", use_container_width=True):
+        if st.button("Clock In / Out", width="stretch"):
 
             # 🔒 HARDENING: pastikan lokasi ada
             if lat is None or lon is None:
@@ -369,6 +373,7 @@ else:
                     jadwal,
                     current_time,
                     current_location,
-                    message
+                    message,
+                    df_all
                 )
             st.rerun()

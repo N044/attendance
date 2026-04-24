@@ -3,6 +3,7 @@ import bcrypt
 import random
 from datetime import datetime
 import streamlit as st
+from app import init_otp
 from lib.airtable import request
 from lib.config import get_config
 
@@ -178,6 +179,8 @@ def sync_otp_once_per_day():
         return
 
     today = datetime.now().strftime("%Y-%m-%d")
+    init_otp(today)
+    
 
     if "OTP_Date" not in df.columns:
         sync_all_user_otp()

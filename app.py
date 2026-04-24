@@ -14,12 +14,11 @@ def init_admin():
 
 init_admin()
 
-@st.cache_data
-def init_otp(today):
+@st.cache_data(ttl=86400)  # 24 jam
+def init_otp():
     attendance.sync_otp_once_per_day()
 
-today = datetime.datetime.now().strftime("%Y-%m-%d")
-init_otp(today)
+init_otp()
 
 df_all = attendance.fetch_all()
 df_users = attendance.fetch_users()

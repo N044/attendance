@@ -1,8 +1,8 @@
 import pandas as pd
 import bcrypt
 import random
-from datetime import datetime
 import streamlit as st
+from datetime import datetime, timezone
 from lib.airtable import request
 from lib.config import get_config
 
@@ -10,7 +10,7 @@ cfg = get_config()
 
 # ================= CACHE =================
 
-@st.cache_data(ttl=300)  # cache selama 5 menit
+@st.cache_data(ttl=1800)  # cache selama 30 menit
 def fetch_users():
     data = request("GET", cfg["TABLE_USERS"])
     if not data:
@@ -19,7 +19,7 @@ def fetch_users():
     return pd.DataFrame(rows)
 
 
-@st.cache_data(ttl=120) # cache selama 2 menit
+@st.cache_data(ttl=3600) # cache selama 1 jam
 def fetch_all():
     records = []
     offset = None
@@ -38,6 +38,41 @@ def fetch_all():
             break
 
     rows = [r.get("fields", {}) for r in records]
+    df = pd.DataFrame(rows)
+
+    if not df.empty and "Waktu" in df.columns:
+        df = df.sort_values("Waktu", ascending=False)
+
+    return df
+
+# ================= TODAY ONLY (PRODUCTION) =================
+
+@st.cache_data(ttl=300)  # 5 menit (aktif hari ini)
+def fetch_today_only():
+    today = datetime.now().strftime("%Y-%m-%d")
+
+    all_records = []
+    offset = None
+
+    while True:
+        params = {
+            "filterByFormula": f"IS_SAME({{Waktu}}, '{today}', 'day')"
+        }
+        if offset:
+            params["offset"] = offset
+
+        data = request("GET", cfg["TABLE_ATTENDANCE"], params=params)
+
+        if not data:
+            return pd.DataFrame()
+
+        all_records.extend(data.get("records", []))
+        offset = data.get("offset")
+
+        if not offset:
+            break
+
+    rows = [r.get("fields", {}) for r in all_records]
     df = pd.DataFrame(rows)
 
     if not df.empty and "Waktu" in df.columns:
@@ -127,7 +162,7 @@ def create_user_airtable(username, password, is_admin=False):
             "Username": username,
             "Hari": "-",
             "Keterangan": "INIT",
-            "Waktu": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "Waktu": datetime.now(timezone.utc).isoformat(),
             "Lokasi": "-",
             "Pesan": "Auto create user",
             "Type": "INIT",
@@ -223,16 +258,17 @@ def insert_record(payload):
         cfg["TABLE_ATTENDANCE"],
         json={"records": [{"fields": payload}]}
     )
-    fetch_all.clear()
+    fetch_today_only.clear()  # invalidate cache
     return res is not None
 
 
 def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
 
+    today = datetime.now().strftime("%Y-%m-%d")
     df_today = df[
         (df["Username"] == username) &
         (df["Type"] != "INIT") &
-        (df["Waktu"].astype(str).str.startswith(datetime.now().strftime("%Y-%m-%d")))
+        (df["Waktu"].astype(str).str.startswith(today))
     ]
 
     if not df_today.empty:
@@ -274,7 +310,10 @@ def _clock_out(u, h, k, w, loc, msg, last):
     if pd.isna(t1) or pd.isna(t2):
         return "failed"
 
-    duration = round((t2 - t1).total_seconds() / 3600, 2)
+    duration_raw = (t2 - t1).total_seconds() / 3600
+
+    # 🔥 floor ke 2 desimal (bukan round)
+    duration = int(duration_raw * 100) / 100
 
     payload = {
         "Username": u,
@@ -284,7 +323,7 @@ def _clock_out(u, h, k, w, loc, msg, last):
         "Lokasi": str(loc),
         "Pesan": msg or "",
         "Type": "OUT",
-        "Duration": f"{duration} Jam"
+        "Duration": f"{duration:.2f} Jam"
     }
 
     return "clock_out" if insert_record(payload) else "failed"
@@ -303,7 +342,10 @@ def get_analytics_from_df(df):
         df["Duration"] = "0"
 
     df["Duration"] = pd.to_numeric(
-        df["Duration"].astype(str).str.replace(" Jam", ""),
+        df["Duration"].astype(str)
+            .str.replace(" Jam", "")
+            .str.replace(" Menit", "")
+            .str.replace(",", "."),
         errors="coerce"
     ).fillna(0)
 

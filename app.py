@@ -21,11 +21,75 @@ def init_otp(today):
 today = datetime.datetime.now().strftime("%Y-%m-%d")
 init_otp(today)
 
-df_all = attendance.fetch_all()
-df_users = attendance.fetch_users()
+def format_duration(d):
+    if pd.isna(d):
+        return "-"
+
+    try:
+        d = float(d)
+    except:
+        return "-"
+
+    total_seconds = int(d * 3600)
+
+    h = total_seconds // 3600
+    m = (total_seconds % 3600) // 60
+
+    return f"{h} Jam {m} Menit"
+
+# ================= HYBRID+ DATA LAYER =================
+
+today = datetime.datetime.now().strftime("%Y-%m-%d")
+
+# ===== INIT BASE (DATA LAMA - 1x SAJA) =====
+if "df_base" not in st.session_state:
+    st.session_state.df_base = attendance.fetch_all()
+
+# ===== FETCH HARI INI SAJA =====
+df_today = attendance.fetch_today_only()
+
+# ===== AMANKAN BASE =====
+df_base = st.session_state.df_base.copy()
+
+if not df_base.empty and "Waktu" in df_base.columns:
+    df_base["Waktu_dt"] = pd.to_datetime(df_base["Waktu"], errors="coerce")
+
+    today_date = pd.to_datetime(today).date()
+
+    df_base = df_base[
+        df_base["Waktu_dt"].dt.date != today_date
+    ]
+
+    # 🔥 CLEANUP KOLOM SEMENTARA
+    df_base = df_base.drop(columns=["Waktu_dt"], errors="ignore")
+
+# ===== MERGE (FINAL DATA) =====
+if df_today.empty:
+    df_all = df_base
+elif df_base.empty:
+    df_all = df_today
+else:
+    df_all = pd.concat([df_today, df_base], ignore_index=True)
+
+# 🔥 ANTI DUPLICATE (OPTIONAL)
+if not df_all.empty:
+    df_all = df_all.drop_duplicates(subset=["Username", "Waktu", "Type"])
+
+# 🔥 FIX TIMEZONE DISPLAY (WAJIB)
+if not df_all.empty and "Waktu" in df_all.columns:
+    df_all["Waktu"] = pd.to_datetime(df_all["Waktu"], errors="coerce", utc=True) \
+        .dt.tz_convert("Asia/Jakarta") \
+        .dt.strftime("%Y-%m-%d %H:%M:%S")
+
+# ===== USERS =====
+if "df_users" not in st.session_state:
+    st.session_state.df_users = attendance.fetch_users()
+
+df_users = st.session_state.df_users
 
 # ================= LOCATION =================
 ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Lokasi Kantor Pusat Mikroskil
+ALLOWED_LOCATION = (3.583994, 98.647010) # Lokasi Rumah
 
 def is_within_allowed_location(user_location, allowed_location, threshold=0.0005):
     lat_diff = abs(user_location[0] - allowed_location[0])
@@ -175,12 +239,31 @@ else:
 
     # ================= ADMIN =================
     if st.session_state.is_admin:
+        
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.subheader("📜 Attendance Logs")
+            # ===== OPTIONAL: TAMPILKAN LAST REFRESH =====
+            if "last_refresh" in st.session_state:
+                st.caption(f"Last sync: {st.session_state.last_refresh}")
 
-        st.subheader("📜 Attendance Logs")
-        df = df_all
+        with col2:
+            st.caption("‎ ")
+            if st.button("🔄 Refresh Data", width="stretch"):
+                st.caption("Klik 🔄 untuk sinkronisasi data")
+                st.session_state.df_base = attendance.fetch_all()  # refresh data lama
+                attendance.fetch_today_only.clear()  # clear cache hari ini
+                st.session_state.last_refresh = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                st.success("Data berhasil disinkronisasi")
+                st.rerun()
+
+        df = df_all.copy()
+
+        if not df.empty and "Duration" in df.columns:
+            df["Duration"] = df["Duration"].apply(format_duration)
 
         if not df.empty:
-            st.dataframe(df)
+            st.dataframe(df, width="stretch")
         else:
             st.info("Belum ada data absensi")
 
@@ -217,6 +300,7 @@ else:
 
                     if success:
                         st.success("User berhasil dibuat")
+                        st.session_state.df_users = attendance.fetch_users()  # refresh users
                         st.rerun()
 
             if st.button("Logout", width="stretch"):
@@ -267,6 +351,17 @@ else:
             df_user = df_all[df_all["Username"] == st.session_state.username]
 
             history = df_user[df_user["Type"] != "INIT"].sort_values("Waktu", ascending=False)
+            history = history.copy()
+
+            if not history.empty and "Duration" in history.columns:
+                history["Duration"] = pd.to_numeric(
+                    history["Duration"].astype(str)
+                        .str.replace(" Jam", "")
+                        .str.replace(" Menit", ""),
+                    errors="coerce"
+                )
+                history["Duration"] = history["Duration"].apply(format_duration)
+
             if not history.empty:
                 st.subheader("📜 Riwayat Absensi")
                 st.dataframe(history, width="stretch")
@@ -294,7 +389,7 @@ else:
 
         tz = pytz.timezone('Asia/Jakarta')
         now = datetime.datetime.now(tz)
-        current_time = now.strftime("%Y-%m-%d %H:%M:%S")
+        current_time = now.isoformat()
 
         hari_map = {
             "Monday": "Senin",
@@ -311,7 +406,9 @@ else:
         #======== STATUS CHECK ========
 
         today = datetime.datetime.now().strftime("%Y-%m-%d")
-        df_today = df_user[df_user["Waktu"].astype(str).str.startswith(today)]
+        df_today = df_user[
+            df_user["Waktu"].astype(str).str.startswith(today)
+        ]
 
         if df_today.empty:
             st.info("ℹ️ Belum ada aktivitas hari ini")
@@ -321,7 +418,15 @@ else:
             if last.get("Type") == "IN":
                 st.warning(f"🟡 Sudah Clock In sejak {last.get('Waktu')}")
             elif last.get("Type") == "OUT":
-                st.info(f"🕰️ Total Durasi: {last.get('Duration', '-')}")
+                duration = last.get("Duration")
+
+                duration = pd.to_numeric(
+                    str(duration).replace(" Jam", "").replace(" Menit", ""),
+                    errors="coerce"
+                )
+                duration = format_duration(duration)
+
+                st.info(f"🕰️ Total Durasi: {duration}")
 
         # ===== RESULT =====
         result = st.session_state.get("last_result")
@@ -377,4 +482,7 @@ else:
                     message,
                     df_all
                 )
+            # update hari ini saja (tanpa fetch_all)
+            st.session_state.df_base = st.session_state.df_base  # keep lama
+            attendance.fetch_today_only.clear()
             st.rerun()

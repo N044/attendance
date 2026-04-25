@@ -89,7 +89,6 @@ df_users = st.session_state.df_users
 
 # ================= LOCATION =================
 ALLOWED_LOCATION = (3.5882070813256024, 98.69050121230667) # Lokasi Kantor Pusat Mikroskil
-ALLOWED_LOCATION = (3.583994, 98.647010) # Lokasi Rumah
 
 def is_within_allowed_location(user_location, allowed_location, threshold=0.0005):
     lat_diff = abs(user_location[0] - allowed_location[0])

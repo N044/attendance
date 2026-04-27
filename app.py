@@ -259,7 +259,15 @@ else:
         df = df_all.copy()
 
         if not df.empty and "Duration" in df.columns:
-            df["Duration"] = df["Duration"].apply(format_duration)
+            
+            df["Duration"] = pd.to_numeric(
+            df["Duration"].astype(str)
+                .str.replace(" Jam", "")
+                .str.replace(" Menit", ""),
+            errors="coerce"
+        )
+
+        df["Duration"] = df["Duration"].apply(format_duration)
 
         if not df.empty:
             st.dataframe(df, width="stretch")

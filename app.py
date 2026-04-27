@@ -243,6 +243,8 @@ else:
         with col1:
             st.subheader("📜 Attendance Logs")
             # ===== OPTIONAL: TAMPILKAN LAST REFRESH =====
+            if "last_refresh" not in st.session_state:
+                st.session_state.last_refresh = "-"
             if "last_refresh" in st.session_state:
                 st.caption(f"Last sync: {st.session_state.last_refresh}")
 
@@ -252,7 +254,7 @@ else:
                 st.caption("Klik 🔄 untuk sinkronisasi data")
                 st.session_state.df_base = attendance.fetch_all()  # refresh data lama
                 attendance.fetch_today_only.clear()  # clear cache hari ini
-                st.session_state.last_refresh = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                st.session_state.last_refresh = datetime.datetime.now().strftime("%d %b %Y • %H:%M")
                 st.success("Data berhasil disinkronisasi")
                 st.rerun()
 

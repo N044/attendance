@@ -3,47 +3,32 @@ import bcrypt
 import random
 import streamlit as st
 from datetime import datetime, timezone
-from lib.airtable import request
-from lib.config import get_config
-
-cfg = get_config()
+from lib.supabase_client import supabase
 
 # ================= CACHE =================
 
 @st.cache_data(ttl=1800)  # cache selama 30 menit
 def fetch_users():
-    data = request("GET", cfg["TABLE_USERS"])
-    if not data:
+    res = supabase.table("users").select("*").execute()
+
+    if not res.data:
         return pd.DataFrame()
-    rows = [r.get("fields", {}) | {"id": r["id"]} for r in data.get("records", [])]
-    return pd.DataFrame(rows)
+    
+    return pd.DataFrame(res.data)
 
 
 @st.cache_data(ttl=3600) # cache selama 1 jam
 def fetch_all():
-    records = []
-    offset = None
 
-    while True:
-        params = {"offset": offset} if offset else {}
-        data = request("GET", cfg["TABLE_ATTENDANCE"], params=params)
+    res = supabase.table("attendance") \
+        .select("*") \
+        .order("waktu", desc=True) \
+        .execute()
 
-        if not data:
-            return pd.DataFrame()
+    if not res.data:
+        return pd.DataFrame()
 
-        records.extend(data.get("records", []))
-        offset = data.get("offset")
-
-        if not offset:
-            break
-
-    rows = [r.get("fields", {}) for r in records]
-    df = pd.DataFrame(rows)
-
-    if not df.empty and "Waktu" in df.columns:
-        df = df.sort_values("Waktu", ascending=False)
-
-    return df
+    return pd.DataFrame(res.data)
 
 # ================= TODAY ONLY (PRODUCTION) =================
 
@@ -51,34 +36,17 @@ def fetch_all():
 def fetch_today_only():
     today = datetime.now().strftime("%Y-%m-%d")
 
-    all_records = []
-    offset = None
 
-    while True:
-        params = {
-            "filterByFormula": f"IS_SAME({{Waktu}}, '{today}', 'day')"
-        }
-        if offset:
-            params["offset"] = offset
+    res = supabase.table("attendance") \
+        .select("*") \
+        .gte("waktu", today) \
+        .order("waktu", desc=True) \
+        .execute()
 
-        data = request("GET", cfg["TABLE_ATTENDANCE"], params=params)
+    if not res.data:
+        return pd.DataFrame()
 
-        if not data:
-            return pd.DataFrame()
-
-        all_records.extend(data.get("records", []))
-        offset = data.get("offset")
-
-        if not offset:
-            break
-
-    rows = [r.get("fields", {}) for r in all_records]
-    df = pd.DataFrame(rows)
-
-    if not df.empty and "Waktu" in df.columns:
-        df = df.sort_values("Waktu", ascending=False)
-
-    return df
+    return pd.DataFrame(res.data)
 
 
 # ================= USER =================
@@ -88,7 +56,7 @@ def get_user(username):
     if df.empty:
         return None
 
-    user = df[df["Username"] == username]
+    user = df[df["username"] == username]
 
     if user.empty:
         return None
@@ -103,11 +71,10 @@ def get_user(username):
 
 
 def update_user(record_id, fields):
-    res = request(
-        "PATCH",
-        cfg["TABLE_USERS"],
-        json={"records": [{"id": record_id, "fields": fields}]}
-    )
+    res = supabase.table("users") \
+    .update(fields) \
+    .eq("id", record_id) \
+    .execute()
 
     fetch_users.clear()  # invalidate cache
     return res is not None
@@ -128,22 +95,22 @@ def ensure_admin_exists():
         hashed = bcrypt.hashpw("admin123".encode(), bcrypt.gensalt()).decode()
 
         insert_user({
-            "Username": "admin",
-            "PasswordHash": hashed,
-            "IsAdmin": True,
-            "OTP": "",
-            "OTP_Date": ""
+            "username": "admin",
+            "passwordhash": hashed,
+            "isadmin": True,
+            "otp": "",
+            "otp_date": ""
         })
 
-def create_user_airtable(username, password, is_admin=False):
+def create_user(username, password, is_admin=False):
 
     # 🔐 HASH PASSWORD
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
 
     payload = {
-        "Username": username,
-        "PasswordHash": hashed,
-        "IsAdmin": bool(is_admin)
+        "username": username,
+        "passwordhash": hashed,
+        "isadmin": bool(is_admin)
     }
 
     # 🔥 NON ADMIN → OTP LANGSUNG ADA
@@ -159,23 +126,23 @@ def create_user_airtable(username, password, is_admin=False):
     # 🔥 SYNC KE ATTENDANCE TABLE (INIT RECORD)
     if not is_admin:
         insert_record({
-            "Username": username,
-            "Hari": "-",
-            "Keterangan": "INIT",
-            "Waktu": datetime.now(timezone.utc).isoformat(),
-            "Lokasi": "-",
-            "Pesan": "Auto create user",
-            "Type": "INIT",
-            "Duration": ""
+            "username": username,
+            "hari": "-",
+            "keterangan": "INIT",
+            "waktu": datetime.now(timezone.utc).isoformat(),
+            "lokasi": "-",
+            "pesan": "Auto create user",
+            "type": "INIT",
+            "duration": ""
         })
 
     return True
 
 
 def insert_user(payload):
-    res = request("POST", cfg["TABLE_USERS"], json={"records": [{"fields": payload}]})
+    res = supabase.table("users").insert(payload).execute()
     fetch_users.clear()
-    return res is not None
+    return res.data is not None
 
 
 # ================= OTP =================
@@ -232,20 +199,15 @@ def sync_all_user_otp():
 
     today = datetime.now().strftime("%Y-%m-%d")
 
-    updates = []
-
     for _, row in df.iterrows():
-        if str(row.get("OTP_Date", "")) != today:
-            updates.append({
-                "id": row["id"],
-                "fields": {
-                    "OTP": str(random.SystemRandom().randint(100000, 999999)),
-                    "OTP_Date": today
-                }
-            })
-
-    for i in range(0, len(updates), 10):
-        request("PATCH", cfg["TABLE_USERS"], json={"records": updates[i:i+10]})
+        
+        supabase.table("users") \
+            .update({
+                "OTP": str(random.SystemRandom().randint(100000, 999999)),
+                "OTP_Date": today
+            }) \
+            .eq("id", row["id"]) \
+            .execute()
 
     fetch_users.clear()
 
@@ -253,22 +215,20 @@ def sync_all_user_otp():
 # ================= ATTENDANCE =================
 
 def insert_record(payload):
-    res = request(
-        "POST",
-        cfg["TABLE_ATTENDANCE"],
-        json={"records": [{"fields": payload}]}
-    )
+    res = supabase.table("attendance") \
+    .insert(payload) \
+    .execute()
     fetch_today_only.clear()  # invalidate cache
-    return res is not None
+    return res.data is not None
 
 
 def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
 
     today = datetime.now().strftime("%Y-%m-%d")
     df_today = df[
-        (df["Username"] == username) &
-        (df["Type"] != "INIT") &
-        (df["Waktu"].astype(str).str.startswith(today))
+        (df["username"] == username) &
+        (df["type"] != "INIT") &
+        (df["waktu"].astype(str).str.startswith(today))
     ]
 
     if not df_today.empty:
@@ -289,14 +249,14 @@ def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
 def _clock_in(u, h, k, w, loc, msg):
 
     payload = {
-        "Username": u,
-        "Hari": h,
-        "Keterangan": k,
+        "username": u,
+        "hari": h,
+        "keterangan": k,
         "Waktu": w,
-        "Lokasi": str(loc),
-        "Pesan": msg or "",
-        "Type": "IN",
-        "Duration": ""
+        "lokasi": str(loc),
+        "pesan": msg or "",
+        "type": "IN",
+        "duration": ""
     }
 
     return "clock_in" if insert_record(payload) else "failed"
@@ -316,14 +276,14 @@ def _clock_out(u, h, k, w, loc, msg, last):
     duration = int(duration_raw * 100) / 100
 
     payload = {
-        "Username": u,
-        "Hari": h,
-        "Keterangan": k,
+        "username": u,
+        "hari": h,
+        "keterangan": k,
         "Waktu": w,
-        "Lokasi": str(loc),
-        "Pesan": msg or "",
-        "Type": "OUT",
-        "Duration": f"{duration:.2f} Jam"
+        "lokasi": str(loc),
+        "pesan": msg or "",
+        "type": "OUT",
+        "duration": f"{duration:.2f} Jam"
     }
 
     return "clock_out" if insert_record(payload) else "failed"
@@ -353,16 +313,16 @@ def get_analytics_from_df(df):
 
     df_out = df[df["Type"] == "OUT"]
 
-    summary = df_out.groupby("Username").agg(
-        Total_Jam=("Duration", "sum"),
-        Rata_Jam=("Duration", "mean"),
-        Total_Hari=("Duration", "count")
+    summary = df_out.groupby("username").agg(
+        Total_Jam=("duration", "sum"),
+        Rata_Jam=("duration", "mean"),
+        Total_Hari=("duration", "count")
     ).reset_index()
 
-    status = df.groupby(["Username", "Keterangan"]).size().reset_index(name="Jumlah")
+    status = df.groupby(["username", "keterangan"]).size().reset_index(name="jumlah")
 
     df_out["Tanggal"] = df_out["Waktu"].dt.date
-    trend = df_out.groupby(["Tanggal", "Username"]).agg(Jam=("Duration", "sum")).reset_index()
+    trend = df_out.groupby(["tanggal", "username"]).agg(Jam=("duration", "sum")).reset_index()
 
     return summary, status, trend
 
@@ -372,4 +332,4 @@ def show_attendance_history(df, username):
 
     df = df[df["Type"] != "INIT"]
 
-    return df[df["Username"] == username].sort_values("Waktu", ascending=False)
+    return df[df["username"] == username].sort_values("waktu", ascending=False)

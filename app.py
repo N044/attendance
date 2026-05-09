@@ -261,7 +261,7 @@ else:
         df = df_all.copy()
 
         if not df.empty and "duration" in df.columns:
-            
+
             df["duration"] = pd.to_numeric(
                 df["duration"].astype(str)
                     .str.replace(" Jam", "")
@@ -272,7 +272,8 @@ else:
         df["duration"] = df["duration"].apply(format_duration)
 
         if not df.empty:
-            st.dataframe(df, width="stretch")
+            df_display = df.drop(columns=["id", "created_at"], errors="ignore")
+            st.dataframe(df_display, width="stretch")
         else:
             st.info("Belum ada data absensi")
 
@@ -357,7 +358,9 @@ else:
         with st.sidebar:
             st.title(f"Welcome, {st.session_state.username} 👋🏼")
 
-            df_user = df_all[df_all["username"] == st.session_state.username]
+            df_user = df_all[
+                df_all["username"] == st.session_state.username
+            ].copy()
 
             history = df_user[df_user["type"] != "INIT"].sort_values("waktu", ascending=False)
             history = history.copy()
@@ -373,7 +376,12 @@ else:
 
             if not history.empty:
                 st.subheader("📜 Riwayat Absensi")
-                st.dataframe(history, width="stretch")
+                history_display = history.drop(
+                    columns=["id", "created_at", "username"],
+                    errors="ignore"
+                )
+
+                st.dataframe(history_display, width="stretch")
             else:
                 st.info("Belum ada riwayat absensi.")
 
@@ -492,6 +500,5 @@ else:
                     df_all
                 )
             # update hari ini saja (tanpa fetch_all)
-            st.session_state.df_base = st.session_state.df_base  # keep lama
             attendance.fetch_today_only.clear()
             st.rerun()

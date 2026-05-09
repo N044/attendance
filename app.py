@@ -51,17 +51,17 @@ df_today = attendance.fetch_today_only()
 # ===== AMANKAN BASE =====
 df_base = st.session_state.df_base.copy()
 
-if not df_base.empty and "Waktu" in df_base.columns:
-    df_base["Waktu_dt"] = pd.to_datetime(df_base["Waktu"], errors="coerce")
+if not df_base.empty and "waktu" in df_base.columns:
+    df_base["waktu_dt"] = pd.to_datetime(df_base["waktu"], errors="coerce")
 
     today_date = pd.to_datetime(today).date()
 
     df_base = df_base[
-        df_base["Waktu_dt"].dt.date != today_date
+        df_base["waktu_dt"].dt.date != today_date
     ]
 
     # 🔥 CLEANUP KOLOM SEMENTARA
-    df_base = df_base.drop(columns=["Waktu_dt"], errors="ignore")
+    df_base = df_base.drop(columns=["waktu_dt"], errors="ignore")
 
 # ===== MERGE (FINAL DATA) =====
 if df_today.empty:
@@ -73,11 +73,11 @@ else:
 
 # 🔥 ANTI DUPLICATE (OPTIONAL)
 if not df_all.empty:
-    df_all = df_all.drop_duplicates(subset=["Username", "Waktu", "Type"])
+    df_all = df_all.drop_duplicates(subset=["username", "waktu", "type"])
 
 # 🔥 FIX TIMEZONE DISPLAY (WAJIB)
-if not df_all.empty and "Waktu" in df_all.columns:
-    df_all["Waktu"] = pd.to_datetime(df_all["Waktu"], errors="coerce", utc=True) \
+if not df_all.empty and "waktu" in df_all.columns:
+    df_all["waktu"] = pd.to_datetime(df_all["waktu"], errors="coerce", utc=True) \
         .dt.tz_convert("Asia/Jakarta") \
         .dt.strftime("%Y-%m-%d %H:%M:%S")
 
@@ -136,7 +136,7 @@ if not st.session_state.is_logged_in:
                     st.rerun()
                 st.stop()
 
-            stored_hash = str(user.get("PasswordHash", "")).strip()
+            stored_hash = str(user.get("passwordhash", "")).strip()
 
             if not stored_hash:
                 st.error("Password belum diset")
@@ -159,7 +159,7 @@ if not st.session_state.is_logged_in:
                 st.stop()
 
             # OTP (non admin)
-            if not user.get("IsAdmin"):
+            if not user.get("isadmin"):
                 if not otp_input:
                     st.error("OTP wajib diisi")
                     st.stop()
@@ -177,7 +177,7 @@ if not st.session_state.is_logged_in:
             st.session_state.is_logged_in = True
 
             st.session_state.username = username
-            st.session_state.is_admin = user.get("IsAdmin", False)
+            st.session_state.is_admin = user.get("isadmin", False)
 
             st.success("Login berhasil!")
             st.rerun()
@@ -260,16 +260,16 @@ else:
 
         df = df_all.copy()
 
-        if not df.empty and "Duration" in df.columns:
+        if not df.empty and "duration" in df.columns:
             
-            df["Duration"] = pd.to_numeric(
-            df["Duration"].astype(str)
-                .str.replace(" Jam", "")
-                .str.replace(" Menit", ""),
-            errors="coerce"
-        )
+            df["duration"] = pd.to_numeric(
+                df["duration"].astype(str)
+                    .str.replace(" Jam", "")
+                    .str.replace(" Menit", ""),
+                errors="coerce"
+            )
 
-        df["Duration"] = df["Duration"].apply(format_duration)
+        df["duration"] = df["duration"].apply(format_duration)
 
         if not df.empty:
             st.dataframe(df, width="stretch")
@@ -284,7 +284,7 @@ else:
             if not df_users.empty:
                 display_df = df_users.copy()
 
-                display_cols = ["Username", "OTP", "OTP_Date"]
+                display_cols = ["username", "otp", "otp_date"]
                 for col in display_cols:
                     if col not in display_df.columns:
                         display_df[col] = "-"
@@ -301,7 +301,7 @@ else:
                         st.error("Password tidak cocok")
                         st.stop()
 
-                    success = attendance.create_user_airtable(
+                    success = attendance.create_user(
                         new_username,
                         new_password,
                         is_admin
@@ -333,9 +333,9 @@ else:
             # ===== STATUS =====
             st.markdown("### 📌 Status Distribution")
             pivot_status = status.pivot(
-                index="Username",
-                columns="Keterangan",
-                values="Jumlah"
+                index="username",
+                columns="keterangan",
+                values="jumlah"
             ).fillna(0)
 
             st.dataframe(pivot_status, width="stretch")
@@ -344,9 +344,9 @@ else:
             st.markdown("### 📈 Daily Working Hours")
 
             trend_chart = trend.pivot(
-                index="Tanggal",
-                columns="Username",
-                values="Jam"
+                index="tanggal",
+                columns="username",
+                values="jam"
             ).fillna(0)
 
             st.line_chart(trend_chart)
@@ -357,19 +357,19 @@ else:
         with st.sidebar:
             st.title(f"Welcome, {st.session_state.username} 👋🏼")
 
-            df_user = df_all[df_all["Username"] == st.session_state.username]
+            df_user = df_all[df_all["username"] == st.session_state.username]
 
-            history = df_user[df_user["Type"] != "INIT"].sort_values("Waktu", ascending=False)
+            history = df_user[df_user["type"] != "INIT"].sort_values("waktu", ascending=False)
             history = history.copy()
 
-            if not history.empty and "Duration" in history.columns:
-                history["Duration"] = pd.to_numeric(
-                    history["Duration"].astype(str)
+            if not history.empty and "duration" in history.columns:
+                history["duration"] = pd.to_numeric(
+                    history["duration"].astype(str)
                         .str.replace(" Jam", "")
                         .str.replace(" Menit", ""),
                     errors="coerce"
                 )
-                history["Duration"] = history["Duration"].apply(format_duration)
+                history["duration"] = history["duration"].apply(format_duration)
 
             if not history.empty:
                 st.subheader("📜 Riwayat Absensi")
@@ -416,7 +416,7 @@ else:
 
         today = datetime.datetime.now().strftime("%Y-%m-%d")
         df_today = df_user[
-            df_user["Waktu"].astype(str).str.startswith(today)
+            df_user["waktu"].astype(str).str.startswith(today)
         ]
 
         if df_today.empty:
@@ -424,10 +424,10 @@ else:
         else:
             last = df_today.iloc[0]
 
-            if last.get("Type") == "IN":
-                st.warning(f"🟡 Sudah Clock In sejak {last.get('Waktu')}")
-            elif last.get("Type") == "OUT":
-                duration = last.get("Duration")
+            if last.get("type") == "IN":
+                st.warning(f"🟡 Sudah Clock In sejak {last.get('waktu')}")
+            elif last.get("type") == "OUT":
+                duration = last.get("duration")
 
                 duration = pd.to_numeric(
                     str(duration).replace(" Jam", "").replace(" Menit", ""),
@@ -446,7 +446,7 @@ else:
             elif result == "clock_out":
                 st.success("✅ Clock Out berhasil!")
             elif result == "already_clocked_out":
-                st.warning(f"❗️Hari Ini (**{last.get('Hari', '-')}**), Sudah Clock Out")
+                st.warning(f"❗️Hari Ini (**{last.get('hari', '-')}**), Sudah Clock Out")
             elif result == "already_clocked_in":
                 st.warning("⚠ Sudah Clock In")
             elif result == "no_clock_out_needed":

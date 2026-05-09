@@ -64,8 +64,8 @@ def get_user(username):
     user = user.iloc[0].to_dict()
 
     # 🔥 FIX KRITIS DI SINI
-    raw_admin = user.get("IsAdmin", False)
-    user["IsAdmin"] = str(raw_admin).lower() in ["true", "1", "yes"]
+    raw_admin = user.get("isadmin", False)
+    user["isadmin"] = str(raw_admin).lower() in ["true", "1", "yes"]
 
     return user
 
@@ -85,10 +85,10 @@ def ensure_admin_exists():
     if df.empty:
         need_admin = True
     else:
-        if "IsAdmin" not in df.columns:
+        if "isadmin" not in df.columns:
             need_admin = True
         else:
-            admin_flags = df["IsAdmin"].astype(str).str.lower().isin(["true", "1", "yes"])
+            admin_flags = df["isadmin"].astype(str).str.lower().isin(["true", "1", "yes"])
             need_admin = not admin_flags.any()
 
     if need_admin:
@@ -115,8 +115,8 @@ def create_user(username, password, is_admin=False):
 
     # 🔥 NON ADMIN → OTP LANGSUNG ADA
     if not is_admin:
-        payload["OTP"] = str(random.SystemRandom().randint(100000, 999999))
-        payload["OTP_Date"] = datetime.now().strftime("%Y-%m-%d")
+        payload["otp"] = str(random.SystemRandom().randint(100000, 999999))
+        payload["otp_date"] = datetime.now().strftime("%Y-%m-%d")
 
     success = insert_user(payload)
 
@@ -150,14 +150,14 @@ def insert_user(payload):
 def ensure_daily_otp(user):
     today = datetime.now().strftime("%Y-%m-%d")
 
-    if str(user.get("OTP_Date", "")) == today:
-        return user.get("OTP")
+    if str(user.get("otp_date", "")) == today:
+        return user.get("otp")
 
     new_otp = str(random.SystemRandom().randint(100000, 999999))
 
     update_user(user["id"], {
-        "OTP": new_otp,
-        "OTP_Date": today
+        "otp": new_otp,
+        "otp_date": today
     })
 
     return new_otp
@@ -181,12 +181,12 @@ def sync_otp_once_per_day():
 
     today = datetime.now().strftime("%Y-%m-%d")
 
-    if "OTP_Date" not in df.columns:
+    if "otp_date" not in df.columns:
         sync_all_user_otp()
         return
 
     # kalau sudah hari ini → STOP
-    if (df["OTP_Date"].astype(str) == today).all():
+    if (df["otp_date"].astype(str) == today).all():
         return
 
     sync_all_user_otp()
@@ -203,8 +203,8 @@ def sync_all_user_otp():
         
         supabase.table("users") \
             .update({
-                "OTP": str(random.SystemRandom().randint(100000, 999999)),
-                "OTP_Date": today
+                "otp": str(random.SystemRandom().randint(100000, 999999)),
+                "otp_date": today
             }) \
             .eq("id", row["id"]) \
             .execute()
@@ -234,13 +234,13 @@ def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
     if not df_today.empty:
         last = df_today.iloc[0]
 
-        if last["Type"] == "OUT":
+        if last["type"] == "OUT":
             return "already_clocked_out"
 
         if last["Keterangan"] in ["Sakit", "Izin"]:
             return "no_clock_out_needed"
 
-        if last["Type"] == "IN":
+        if last["type"] == "IN":
             return _clock_out(username, hari, ket, waktu, lokasi, pesan, last)
 
     return _clock_in(username, hari, ket, waktu, lokasi, pesan)
@@ -252,7 +252,7 @@ def _clock_in(u, h, k, w, loc, msg):
         "username": u,
         "hari": h,
         "keterangan": k,
-        "Waktu": w,
+        "waktu": w,
         "lokasi": str(loc),
         "pesan": msg or "",
         "type": "IN",
@@ -264,7 +264,7 @@ def _clock_in(u, h, k, w, loc, msg):
 
 def _clock_out(u, h, k, w, loc, msg, last):
 
-    t1 = pd.to_datetime(last["Waktu"], errors='coerce').tz_localize(None)
+    t1 = pd.to_datetime(last["waktu"], errors='coerce').tz_localize(None)
     t2 = pd.to_datetime(w, errors='coerce').tz_localize(None)
 
     if pd.isna(t1) or pd.isna(t2):
@@ -279,7 +279,7 @@ def _clock_out(u, h, k, w, loc, msg, last):
         "username": u,
         "hari": h,
         "keterangan": k,
-        "Waktu": w,
+        "waktu": w,
         "lokasi": str(loc),
         "pesan": msg or "",
         "type": "OUT",
@@ -296,22 +296,29 @@ def get_analytics_from_df(df):
     if df.empty:
         return None, None, None
 
-    df = df[df["Type"] != "INIT"]
+    df = df[df["type"] != "INIT"]
 
-    if "Duration" not in df.columns:
-        df["Duration"] = "0"
+    if "duration" not in df.columns:
+        df["duration"] = "0"
 
     df["Duration"] = pd.to_numeric(
-        df["Duration"].astype(str)
+        df["duration"].astype(str)
             .str.replace(" Jam", "")
             .str.replace(" Menit", "")
             .str.replace(",", "."),
         errors="coerce"
     ).fillna(0)
 
-    df["Waktu"] = pd.to_datetime(df["Waktu"], errors="coerce")
+    df["waktu"] = pd.to_datetime(df["waktu"], errors="coerce")
 
-    df_out = df[df["Type"] == "OUT"]
+    df_out = df[df["type"] == "OUT"]
+    df_out["duration"] = pd.to_numeric(
+    df_out["duration"]
+        .astype(str)
+        .str.replace(" Jam", "")
+        .str.replace(" Menit", ""),
+    errors="coerce"
+)
 
     summary = df_out.groupby("username").agg(
         Total_Jam=("duration", "sum"),
@@ -321,8 +328,8 @@ def get_analytics_from_df(df):
 
     status = df.groupby(["username", "keterangan"]).size().reset_index(name="jumlah")
 
-    df_out["Tanggal"] = df_out["Waktu"].dt.date
-    trend = df_out.groupby(["tanggal", "username"]).agg(Jam=("duration", "sum")).reset_index()
+    df_out["tanggal"] = df_out["waktu"].dt.date
+    trend = df_out.groupby(["tanggal", "username"]).agg(jam=("duration", "sum")).reset_index()
 
     return summary, status, trend
 
@@ -330,6 +337,6 @@ def show_attendance_history(df, username):
     if df.empty:
         return df
 
-    df = df[df["Type"] != "INIT"]
+    df = df[df["type"] != "INIT"]
 
     return df[df["username"] == username].sort_values("waktu", ascending=False)

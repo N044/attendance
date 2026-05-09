@@ -297,7 +297,7 @@ else:
                 new_username = st.text_input("Username Baru")
                 new_password = st.text_input("Password", type="password")
                 confirm_password = st.text_input("Konfirmasi Password", type="password")
-                is_admin = st.checkbox("Jadikan Admin")
+                is_admin = st.checkbox("Admin Access")
 
                 if st.button("Create User", width="stretch"):
                     if new_password != confirm_password:

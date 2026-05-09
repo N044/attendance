@@ -283,7 +283,9 @@ else:
             st.subheader("🔐 OTP Management")
 
             if not df_users.empty:
-                display_df = df_users.copy()
+                display_df = df_users[
+                    df_users["isadmin"] != True
+                ].copy()
 
                 display_cols = ["username", "otp", "otp_date"]
                 for col in display_cols:

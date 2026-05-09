@@ -138,6 +138,37 @@ def create_user(username, password, is_admin=False):
 
     return True
 
+def reset_password_with_otp(username, otp_input, new_password):
+
+    user = get_user(username)
+
+    if not user:
+        return False, "User tidak ditemukan"
+
+    stored_otp = str(user.get("otp", "")).strip()
+
+    if stored_otp != str(otp_input).strip():
+        return False, "OTP tidak valid"
+
+    hashed = bcrypt.hashpw(
+        new_password.encode(),
+        bcrypt.gensalt()
+    ).decode()
+
+    res = supabase.table("users") \
+        .update({
+            "passwordhash": hashed
+        }) \
+        .eq("username", username) \
+        .execute()
+
+    fetch_users.clear()
+
+    if res.data is not None:
+        return True, "Password berhasil direset"
+
+    return False, "Gagal reset password"
+
 
 def insert_user(payload):
     res = supabase.table("users").insert(payload).execute()

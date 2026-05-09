@@ -80,23 +80,37 @@ def update_user(record_id, fields):
     return res is not None
 
 def ensure_admin_exists():
+
     df = fetch_users()
 
     if df.empty:
-        need_admin = True
-    else:
-        if "isadmin" not in df.columns:
-            need_admin = True
-        else:
-            admin_flags = df["isadmin"].astype(str).str.lower().isin(["true", "1", "yes"])
-            need_admin = not admin_flags.any()
-
-    if need_admin:
-        hashed = bcrypt.hashpw("admin123".encode(), bcrypt.gensalt()).decode()
 
         insert_user({
             "username": "admin",
-            "passwordhash": hashed,
+            "passwordhash": bcrypt.hashpw(
+                "admin123".encode(),
+                bcrypt.gensalt()
+            ).decode(),
+            "isadmin": True,
+            "otp": "",
+            "otp_date": ""
+        })
+
+        return
+
+    # 🔥 cek username admin
+    existing_admin = df[
+        df["username"].astype(str).str.lower() == "admin"
+    ]
+
+    if existing_admin.empty:
+
+        insert_user({
+            "username": "admin",
+            "passwordhash": bcrypt.hashpw(
+                "admin123".encode(),
+                bcrypt.gensalt()
+            ).decode(),
             "isadmin": True,
             "otp": "",
             "otp_date": ""
@@ -171,8 +185,21 @@ def reset_password_with_otp(username, otp_input, new_password):
 
 
 def insert_user(payload):
-    res = supabase.table("users").insert(payload).execute()
+
+    existing = supabase.table("users") \
+        .select("username") \
+        .eq("username", payload["username"]) \
+        .execute()
+
+    if existing.data:
+        return False
+
+    res = supabase.table("users") \
+        .insert(payload) \
+        .execute()
+
     fetch_users.clear()
+
     return res.data is not None
 
 

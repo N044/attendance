@@ -6,3 +6,4 @@ streamlit-js-eval==1.0.0
 supabase==2.30.0
 supabase-auth==2.30.0
 supabase-functions==2.30.0
+resend==2.30.0

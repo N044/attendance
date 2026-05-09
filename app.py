@@ -279,24 +279,86 @@ else:
 
         with st.sidebar:
             st.title(f"Welcome, {st.session_state.username} 👋🏼")
+            hari_map = {
+                "Monday": "Monday",
+                "Tuesday": "Tuesday",
+                "Wednesday": "Wednesday",
+                "Thursday": "Thursday",
+                "Friday": "Friday",
+                "Saturday": "Saturday",
+                "Sunday": "Sunday"
+            }
+
+            now = datetime.datetime.now()
+
+            hari = hari_map[now.strftime("%A")]
+
+            today_display = now.strftime("%d %b %Y")
+
+            st.caption(f"Today's: {hari}, {today_display}")
 
             st.subheader("🔐 OTP Management")
 
             if not df_users.empty:
+
                 display_df = df_users[
                     df_users["isadmin"] != True
                 ].copy()
 
-                display_cols = ["username", "otp", "otp_date"]
-                for col in display_cols:
-                    if col not in display_df.columns:
-                        display_df[col] = "-"
-                st.dataframe(display_df[display_cols])
+                display_df = display_df[
+                    ["username", "otp"]
+                ]
+
+                display_df["send"] = False
+
+                edited_df = st.data_editor(
+                    display_df,
+                    hide_index=True,
+                    width="stretch",
+                    disabled=["username", "otp_date"],
+                    column_config={
+                        "username": "Username",
+                        "otp_date": "OTP Date",
+                        "otp": "OTP",
+                        "send": st.column_config.CheckboxColumn(
+                            "Send"
+                        )
+                    }
+                )
+
+                selected_users = edited_df[
+                    edited_df["send"] == True
+                ]
+
+                if st.button(
+                    "Send",
+                    width="stretch"
+                ):
+
+                    if selected_users.empty:
+                        st.warning("Pilih minimal 1 user")
+                        st.stop()
+
+                    success_count = 0
+
+                    for _, row in selected_users.iterrows():
+
+                        success, _ = attendance.send_otp_email(
+                            row["username"]
+                        )
+
+                        if success:
+                            success_count += 1
+
+                    st.success(
+                        f"Total {success_count} OTP Berhasil Dikirim"
+                    )
 
             with st.expander("👤 User Management"):
-                new_username = st.text_input("Username Baru")
+                email = st.text_input("Email")
+                new_username = st.text_input("New Username")
                 new_password = st.text_input("Password", type="password")
-                confirm_password = st.text_input("Konfirmasi Password", type="password")
+                confirm_password = st.text_input("Confirm Password", type="password")
                 is_admin = st.checkbox("Admin Access")
 
                 if st.button("Create User", width="stretch"):
@@ -307,7 +369,8 @@ else:
                     success = attendance.create_user(
                         new_username,
                         new_password,
-                        is_admin
+                        is_admin,
+                        email
                     )
 
                     if success:

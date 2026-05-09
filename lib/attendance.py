@@ -2,8 +2,11 @@ import pandas as pd
 import bcrypt
 import random
 import streamlit as st
+import resend
 from datetime import datetime, timezone
 from lib.supabase_client import supabase
+
+resend.api_key = st.secrets["RESEND_API_KEY"]
 
 # ================= CACHE =================
 
@@ -50,6 +53,50 @@ def fetch_today_only():
 
 
 # ================= USER =================
+
+def send_otp_email(username):
+
+    try:
+
+        user = get_user(username)
+
+        if not user:
+            return False, "User tidak ditemukan"
+
+        email = str(user.get("email", "")).strip()
+
+        otp = str(user.get("otp", "")).strip()
+
+        if not email:
+            return False, "Email belum tersedia"
+
+        if not otp:
+            return False, "OTP belum tersedia"
+
+        params = {
+            "from": "Attendance <onboarding@resend.dev>",
+            "to": [email],
+            "subject": "Your OTP Code",
+            "html": f"""
+            <h2>Monitoring Attendance OTP</h2>
+
+            <p>Hello {username},</p>
+
+            <p>Your OTP Code:</p>
+
+            <h1>{otp}</h1>
+
+            <p>Please do not share this OTP.</p>
+            """
+        }
+
+        resend.Emails.send(params)
+
+        return True, f"OTP berhasil dikirim ke {email}"
+
+    except Exception as e:
+
+        return False, str(e)
 
 def get_user(username):
     df = fetch_users()
@@ -116,7 +163,7 @@ def ensure_admin_exists():
             "otp_date": ""
         })
 
-def create_user(username, password, is_admin=False):
+def create_user(username, password, is_admin=False, email=""):
 
     # 🔐 HASH PASSWORD
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -124,7 +171,8 @@ def create_user(username, password, is_admin=False):
     payload = {
         "username": username,
         "passwordhash": hashed,
-        "isadmin": bool(is_admin)
+        "isadmin": bool(is_admin),
+        "email": email
     }
 
     # 🔥 NON ADMIN → OTP LANGSUNG ADA
@@ -147,7 +195,8 @@ def create_user(username, password, is_admin=False):
             "lokasi": "-",
             "pesan": "Auto create user",
             "type": "INIT",
-            "duration": ""
+            "duration": "",
+            "email": ""
         })
 
     return True
@@ -295,7 +344,7 @@ def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
         if last["type"] == "OUT":
             return "already_clocked_out"
 
-        if last["Keterangan"] in ["Sakit", "Izin"]:
+        if last["keterangan"] in ["Sakit", "Izin"]:
             return "no_clock_out_needed"
 
         if last["type"] == "IN":
@@ -359,13 +408,6 @@ def get_analytics_from_df(df):
     if "duration" not in df.columns:
         df["duration"] = "0"
 
-    df["Duration"] = pd.to_numeric(
-        df["duration"].astype(str)
-            .str.replace(" Jam", "")
-            .str.replace(" Menit", "")
-            .str.replace(",", "."),
-        errors="coerce"
-    ).fillna(0)
 
     df["waktu"] = pd.to_datetime(df["waktu"], errors="coerce")
 

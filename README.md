@@ -1,7 +1,7 @@
-# 📍 Student Affairs Office Management System - Geolocation-Based Attendance
+# 📍 Monitoring Management System - Geolocation-Based Attendance
 
 ## 🚀 Overview
-This project is a **Geolocation-Based Attendance System** designed for **Student Affairs management**, ensuring **secure and accurate** check-ins. It incorporates **TOTP verification** to prevent account sharing and enhance system integrity. 
+This project is a **Geolocation-Based Attendance System** designed for **monitoring management**, ensuring **secure and accurate** check-ins. It incorporates **TOTP verification** to prevent account sharing and enhance system integrity. 
 
 Built with **Streamlit** and deployed on **Streamlit Cloud**, this system is optimized for seamless and efficient attendance tracking.
 

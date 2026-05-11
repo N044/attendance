@@ -3,10 +3,16 @@ import bcrypt
 import random
 import streamlit as st
 import resend
+import pytz
 from datetime import datetime, timezone
 from lib.supabase_client import supabase
 
 resend.api_key = st.secrets["RESEND_API_KEY"]
+
+JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
+
+def now_jakarta():
+    return datetime.now(JAKARTA_TZ)
 
 # ================= CACHE =================
 
@@ -37,7 +43,7 @@ def fetch_all():
 
 @st.cache_data(ttl=300)  # 5 menit (aktif hari ini)
 def fetch_today_only():
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_jakarta().strftime("%Y-%m-%d")
 
 
     res = supabase.table("attendance") \
@@ -63,7 +69,12 @@ def send_otp_email(username):
         if not user:
             return False, "User tidak ditemukan"
 
-        email = str(user.get("email", "")).strip()
+        email = user.get("email")
+
+        if not email or pd.isna(email):
+            return False, "Email belum tersedia"
+
+        email = str(email).strip()
 
         otp = str(user.get("otp", "")).strip()
 
@@ -90,9 +101,13 @@ def send_otp_email(username):
             """
         }
 
-        resend.Emails.send(params)
+        response = resend.Emails.send(params)
+        print("Resend response:", response)
 
-        return True, f"OTP berhasil dikirim ke {email}"
+        if response:
+            return True, f"OTP berhasil dikirim ke {email}"
+
+        return False, "Gagal mengirim OTP"
 
     except Exception as e:
 
@@ -178,7 +193,7 @@ def create_user(username, password, is_admin=False, email=""):
     # 🔥 NON ADMIN → OTP LANGSUNG ADA
     if not is_admin:
         payload["otp"] = str(random.SystemRandom().randint(100000, 999999))
-        payload["otp_date"] = datetime.now().strftime("%Y-%m-%d")
+        payload["otp_date"] = now_jakarta().strftime("%Y-%m-%d")
 
     success = insert_user(payload)
 
@@ -195,7 +210,8 @@ def create_user(username, password, is_admin=False, email=""):
             "lokasi": "-",
             "pesan": "Auto create user",
             "type": "INIT",
-            "duration": "",
+            "duration": "-",
+            "duration_hours": 0
         })
 
     return True
@@ -254,7 +270,7 @@ def insert_user(payload):
 # ================= OTP =================
 
 def ensure_daily_otp(user):
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_jakarta().strftime("%Y-%m-%d")
 
     if str(user.get("otp_date", "")) == today:
         return user.get("otp")
@@ -285,14 +301,16 @@ def sync_otp_once_per_day():
     if df.empty:
         return
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_jakarta().strftime("%Y-%m-%d")
 
     if "otp_date" not in df.columns:
         sync_all_user_otp()
         return
 
     # kalau sudah hari ini → STOP
-    if (df["otp_date"].astype(str) == today).all():
+    df_non_admin = df[df["isadmin"] != True]
+
+    if (df_non_admin["otp_date"].astype(str) == today).all():
         return
 
     sync_all_user_otp()
@@ -303,9 +321,12 @@ def sync_all_user_otp():
     if df.empty:
         return
 
-    today = datetime.now().strftime("%Y-%m-%d")
+    today = now_jakarta().strftime("%Y-%m-%d")
 
     for _, row in df.iterrows():
+
+        if row.get("isadmin") == True:
+            continue
         
         supabase.table("users") \
             .update({
@@ -324,17 +345,33 @@ def insert_record(payload):
     res = supabase.table("attendance") \
     .insert(payload) \
     .execute()
-    fetch_today_only.clear()  # invalidate cache
+
+    fetch_today_only.clear()  # invalidate cache hari ini
+    fetch_all.clear()  # invalidate cache
+
     return res.data is not None
 
 
 def save_attendance(username, hari, ket, waktu, lokasi, pesan, df):
 
-    today = datetime.now().strftime("%Y-%m-%d")
-    df_today = df[
-        (df["username"] == username) &
-        (df["type"] != "INIT") &
-        (df["waktu"].astype(str).str.startswith(today))
+    today = now_jakarta().strftime("%Y-%m-%d")
+    df_temp = df.copy()
+
+    df_temp["waktu_dt"] = pd.to_datetime(
+        df_temp["waktu"],
+        errors="coerce",
+        utc=True
+    )
+
+    today_date = now_jakarta().date()
+
+    valid_dates = df_temp["waktu_dt"].notna()
+
+    df_today = df_temp[
+        (df_temp["username"] == username) &
+        (df_temp["type"] != "INIT") &
+        valid_dates &
+        (df_temp["waktu_dt"].apply(lambda x: x.date()) == today_date)
     ]
 
     if not df_today.empty:
@@ -362,7 +399,8 @@ def _clock_in(u, h, k, w, loc, msg):
         "lokasi": str(loc),
         "pesan": msg or "",
         "type": "IN",
-        "duration": ""
+        "duration": "-",
+        "duration_hours": 0
     }
 
     return "clock_in" if insert_record(payload) else "failed"
@@ -422,13 +460,16 @@ def get_analytics_from_df(df):
 
     df = df[df["type"] != "INIT"]
 
-    if "duration" not in df.columns:
-        df["duration"] = "0"
+    df["waktu"] = pd.to_datetime(
+        df["waktu"],
+        errors="coerce",
+        utc=True
+    )
 
-
-    df["waktu"] = pd.to_datetime(df["waktu"], errors="coerce")
+    df = df.dropna(subset=["waktu"])
 
     df_out = df[df["type"] == "OUT"].copy()
+
     df_out["duration_hours"] = pd.to_numeric(
         df_out["duration_hours"],
         errors="coerce"

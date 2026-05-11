@@ -238,7 +238,11 @@ else:
                 st.caption("Klik 🔄 untuk sinkronisasi data")
                 st.session_state.df_base = attendance.fetch_all()  # refresh data lama
                 attendance.fetch_today_only.clear()  # clear cache hari ini
-                st.session_state.last_refresh = datetime.datetime.now().strftime("%d %b %Y • %H:%M")
+                jakarta_tz = pytz.timezone("Asia/Jakarta")
+
+                st.session_state.last_refresh = datetime.datetime.now(
+                    jakarta_tz
+                ).strftime(f"%d %b %Y • %H:%M WIB")
                 st.success("Data berhasil disinkronisasi")
                 st.rerun()
 

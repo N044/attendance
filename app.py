@@ -21,22 +21,6 @@ def init_otp(today):
 today = datetime.datetime.now().strftime("%Y-%m-%d")
 init_otp(today)
 
-def format_duration(d):
-    if pd.isna(d):
-        return "-"
-
-    try:
-        d = float(d)
-    except:
-        return "-"
-
-    total_seconds = int(d * 3600)
-
-    h = total_seconds // 3600
-    m = (total_seconds % 3600) // 60
-
-    return f"{h} Jam {m} Menit"
-
 # ================= HYBRID+ DATA LAYER =================
 
 today = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -258,21 +242,29 @@ else:
                 st.success("Data berhasil disinkronisasi")
                 st.rerun()
 
-        df = df_all.copy()
+            df = df_all.copy()
 
-        if not df.empty and "duration" in df.columns:
+            # ===== DISPLAY ONLY =====
+            df_display = df.copy()
 
-            df["duration"] = pd.to_numeric(
-                df["duration"].astype(str)
-                    .str.replace(" Jam", "")
-                    .str.replace(" Menit", ""),
-                errors="coerce"
-            )
+            if not df_display.empty and "duration" in df_display.columns:
 
-        df["duration"] = df["duration"].apply(format_duration)
+                df_display["duration"] = pd.to_numeric(
+                    df_display["duration"].astype(str)
+                        .str.replace(" Jam", "")
+                        .str.replace(" Menit", ""),
+                    errors="coerce"
+                )
+
+                df_display["duration"] = df_display["duration"].apply(
+                    attendance.format_duration
+                )
 
         if not df.empty:
-            df_display = df.drop(columns=["id", "created_at"], errors="ignore")
+            df_display = df_display.drop(
+                columns=["id", "created_at"],
+                errors="ignore"
+            )
             st.dataframe(df_display, width="stretch")
         else:
             st.info("Belum ada data absensi")
@@ -409,13 +401,13 @@ else:
             # ===== TREND =====
             st.markdown("### 📈 Daily Working Hours")
 
-            trend_chart = trend.pivot(
-                index="tanggal",
-                columns="username",
-                values="jam"
-            ).fillna(0)
+            daily_total = trend.groupby("tanggal")["jam"] \
+                .sum() \
+                .reset_index()
 
-            st.line_chart(trend_chart)
+            daily_total = daily_total.set_index("tanggal")
+
+            st.line_chart(daily_total)
 
     # ================= USER =================
     else:
@@ -437,7 +429,7 @@ else:
                         .str.replace(" Menit", ""),
                     errors="coerce"
                 )
-                history["duration"] = history["duration"].apply(format_duration)
+                history["duration"] = history["duration"].apply(attendance.format_duration)
 
             if not history.empty:
                 st.subheader("📜 Riwayat Absensi")
@@ -446,7 +438,7 @@ else:
                     errors="ignore"
                 )
 
-                st.dataframe(history_display, width="stretch")
+                st.dataframe(history_display, width="stretch", hide_index=True,)
             else:
                 st.info("Belum ada riwayat absensi.")
 
@@ -506,7 +498,7 @@ else:
                     str(duration).replace(" Jam", "").replace(" Menit", ""),
                     errors="coerce"
                 )
-                duration = format_duration(duration)
+                duration = attendance.format_duration(duration)
 
                 st.info(f"🕰️ Total Durasi: {duration}")
 

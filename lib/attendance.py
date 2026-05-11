@@ -196,7 +196,6 @@ def create_user(username, password, is_admin=False, email=""):
             "pesan": "Auto create user",
             "type": "INIT",
             "duration": "",
-            "email": ""
         })
 
     return True
@@ -390,13 +389,31 @@ def _clock_out(u, h, k, w, loc, msg, last):
         "lokasi": str(loc),
         "pesan": msg or "",
         "type": "OUT",
-        "duration": f"{duration:.2f} Jam"
+        "duration": format_duration(duration),
+        "duration_hours": round(duration, 2)  # untuk analytics, tetap simpan sebagai number
     }
 
     return "clock_out" if insert_record(payload) else "failed"
 
 
 # ================= ANALYTICS =================
+
+def format_duration(d):
+    if pd.isna(d):
+        return "-"
+
+    try:
+        d = float(d)
+    except:
+        return "-"
+
+    total_seconds = int(d * 3600)
+
+    h = total_seconds // 3600
+    m = (total_seconds % 3600) // 60
+
+    return f"{h} Jam {m} Menit"
+
 
 def get_analytics_from_df(df):
 
@@ -411,25 +428,26 @@ def get_analytics_from_df(df):
 
     df["waktu"] = pd.to_datetime(df["waktu"], errors="coerce")
 
-    df_out = df[df["type"] == "OUT"]
-    df_out["duration"] = pd.to_numeric(
-    df_out["duration"]
-        .astype(str)
-        .str.replace(" Jam", "")
-        .str.replace(" Menit", ""),
-    errors="coerce"
+    df_out = df[df["type"] == "OUT"].copy()
+    df_out["duration_hours"] = pd.to_numeric(
+        df_out["duration_hours"],
+        errors="coerce"
 )
 
     summary = df_out.groupby("username").agg(
-        Total_Jam=("duration", "sum"),
-        Rata_Jam=("duration", "mean"),
-        Total_Hari=("duration", "count")
+        Total_Jam=("duration_hours", "sum"),
+        Rata_Jam=("duration_hours", "mean"),
+        Total_Hari=("duration_hours", "count")
     ).reset_index()
 
     status = df.groupby(["username", "keterangan"]).size().reset_index(name="jumlah")
 
     df_out["tanggal"] = df_out["waktu"].dt.date
-    trend = df_out.groupby(["tanggal", "username"]).agg(jam=("duration", "sum")).reset_index()
+    trend = df_out.groupby(
+        ["tanggal"]
+    ).agg(
+        jam=("duration_hours", "sum")
+    ).reset_index()
 
     return summary, status, trend
 

@@ -86,11 +86,13 @@ def send_otp_email(username):
 
         sender_email = st.secrets["EMAIL_SENDER"]
         sender_password = st.secrets["EMAIL_PASSWORD"]
+        cc_email = "noah.napitupulu@mikroskil.ac.id"
 
         msg = MIMEMultipart()
 
         msg["From"] = f"Attendance System <{sender_email}>"
         msg["To"] = email
+        msg["Cc"] = cc_email
         msg["Subject"] = "Attendance OTP Verification"
 
         body = f"""
@@ -153,7 +155,9 @@ def send_otp_email(username):
         server.starttls()
         server.login(sender_email, sender_password)
         print("SEND OTP TO:", email)
-        server.sendmail(sender_email, email, msg.as_string())
+
+        recipients = [email, cc_email]
+        server.sendmail(sender_email, recipients, msg.as_string())
         server.quit()
 
     except Exception as e:

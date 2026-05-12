@@ -2,12 +2,12 @@ import pandas as pd
 import bcrypt
 import random
 import streamlit as st
-import resend
 import pytz
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone
 from lib.supabase_client import supabase
-
-resend.api_key = st.secrets["RESEND_API_KEY"]
 
 JAKARTA_TZ = pytz.timezone("Asia/Jakarta")
 
@@ -84,34 +84,83 @@ def send_otp_email(username):
         if not otp:
             return False, "OTP belum tersedia"
 
-        params = {
-            "from": "Attendance <onboarding@resend.dev>",
-            "to": [email],
-            "subject": "Your OTP Code",
-            "html": f"""
-            <h2>Monitoring Attendance OTP</h2>
+        sender_email = st.secrets["EMAIL_SENDER"]
+        sender_password = st.secrets["EMAIL_PASSWORD"]
 
-            <p>Hello {username},</p>
+        msg = MIMEMultipart()
 
-            <p>Your OTP Code:</p>
+        msg["From"] = f"Attendance System <{sender_email}>"
+        msg["To"] = email
+        msg["Subject"] = "Attendance OTP Verification"
 
-            <h1>{otp}</h1>
+        body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; background-color:#f4f4f4; padding:20px;">
 
-            <p>Please do not share this OTP.</p>
-            """
-        }
+            <div style="
+                max-width:500px;
+                margin:auto;
+                background:white;
+                padding:30px;
+                border-radius:12px;
+                box-shadow:0 2px 8px rgba(0,0,0,0.1);
+            ">
 
-        response = resend.Emails.send(params)
-        print("Resend response:", response)
+                <h2 style="color:#333;">
+                    Universitas Mikroskil Student Affairs Office
+                </h2>
 
-        if response:
-            return True, f"OTP berhasil dikirim ke {email}"
+                <hr style="margin:30px 0;">
 
-        return False, "Gagal mengirim OTP"
+                <p>Hello <b>{username}</b>,</p>
+
+                <p>
+                    Your OTP code for verification is:
+                </p>
+
+                <div style="
+                    font-size:32px;
+                    font-weight:bold;
+                    letter-spacing:4px;
+                    color:#2563eb;
+                    text-align:center;
+                    margin:30px 0;
+                ">
+                    {otp}
+                </div>
+
+                <p>
+                    This OTP is valid for today only.
+                </p>
+                <p>
+                    Please do not share this OTP with anyone. If you did not request this, please ignore this email.
+                </p>
+
+                <hr style="margin:30px 0;">
+
+                <p style="font-size:12px; color:gray;">
+                    Monitoring Attendance System (UM.SAO) - Developed by N044 </a>
+                </p>
+
+            </div>
+
+        </body>
+        </html>
+        """
+
+        msg.attach(MIMEText(body, "html"))
+        server = smtplib.SMTP("smtp.gmail.com", 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        print("SEND OTP TO:", email)
+        server.sendmail(sender_email, email, msg.as_string())
+        server.quit()
 
     except Exception as e:
-
+        print("EMAIL ERROR:", e)
         return False, str(e)
+    
+    return True, "OTP berhasil dikirim ke email"
 
 def get_user(username):
     df = fetch_users()

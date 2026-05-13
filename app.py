@@ -250,19 +250,16 @@ else:
 
             # ===== DISPLAY ONLY =====
             df_display = df.copy()
+        if not df_display.empty:
 
-            if not df_display.empty and "duration" in df_display.columns:
-
-                df_display["duration"] = pd.to_numeric(
-                    df_display["duration"].astype(str)
-                        .str.replace(" Jam", "")
-                        .str.replace(" Menit", ""),
-                    errors="coerce"
-                )
-
-                df_display["duration"] = df_display["duration"].apply(
-                    attendance.format_duration
-                )
+            df_display = df_display.drop(
+                columns=[
+                    "id",
+                    "created_at",
+                    "duration_hours",
+                ],
+                errors="ignore"
+            )
 
         if not df.empty:
             df_display = df_display.drop(
@@ -384,34 +381,76 @@ else:
 
         summary, status, trend = get_analytics_from_df(df_all)
 
+    # ================= TODAY OVERVIEW =================
+
+        today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        df_today_overview = df_all[
+            df_all["waktu"].astype(str).str.startswith(today_str)
+        ].copy()
+
+        clock_in_today = len(
+            df_today_overview[df_today_overview["type"] == "IN"]
+        )
+
+        clock_out_today = len(
+            df_today_overview[df_today_overview["type"] == "OUT"]
+        )
+
+        izin_sakit_today = len(
+            df_today_overview[
+                df_today_overview["keterangan"].isin(["Izin", "Sakit"])
+            ]
+        )
+
+        belum_clock_out = max(
+            clock_in_today - clock_out_today,
+            0
+        )
+
         if summary is None:
             st.info("Belum ada data analytics")
         else:
 
+            st.markdown("### 📌 Today Attendance Overview")
+
+            col1, col2, col3, col4 = st.columns(4)
+
+            col1.metric(
+                "Clock In",
+                clock_in_today
+            )
+
+            col2.metric(
+                "Clock Out",
+                clock_out_today
+            )
+
+            col3.metric(
+                "Belum Clock Out",
+                belum_clock_out
+            )
+
+            col4.metric(
+                "Izin / Sakit",
+                izin_sakit_today
+            )
+
             # ===== SUMMARY =====
             st.markdown("### 👤 Summary Per User")
-            st.dataframe(summary, width="stretch")
+            st.dataframe(summary, width="stretch", hide_index=True)
 
-            # ===== STATUS =====
-            st.markdown("### 📌 Status Distribution")
-            pivot_status = status.pivot(
-                index="username",
-                columns="keterangan",
-                values="jumlah"
-            ).fillna(0)
+            st.markdown("### 📊 Attendance Status Distribution")
 
-            st.dataframe(pivot_status, width="stretch")
-
-            # ===== TREND =====
-            st.markdown("### 📈 Daily Working Hours")
-
-            daily_total = trend.groupby("tanggal")["jam"] \
-                .sum() \
+            status_chart = (
+                status.groupby("keterangan")["jumlah"]
+                .sum()
                 .reset_index()
+            )
 
-            daily_total = daily_total.set_index("tanggal")
+            status_chart = status_chart.set_index("keterangan")
 
-            st.line_chart(daily_total)
+            st.bar_chart(status_chart)
 
     # ================= USER =================
     else:
@@ -426,19 +465,10 @@ else:
             history = df_user[df_user["type"] != "INIT"].sort_values("waktu", ascending=False)
             history = history.copy()
 
-            if not history.empty and "duration" in history.columns:
-                history["duration"] = pd.to_numeric(
-                    history["duration"].astype(str)
-                        .str.replace(" Jam", "")
-                        .str.replace(" Menit", ""),
-                    errors="coerce"
-                )
-                history["duration"] = history["duration"].apply(attendance.format_duration)
-
             if not history.empty:
                 st.subheader("📜 Riwayat Absensi")
                 history_display = history.drop(
-                    columns=["id", "created_at", "username"],
+                    columns=["id", "created_at", "username", "duration_hours", "latitude", "lokasi"],
                     errors="ignore"
                 )
 
@@ -496,13 +526,7 @@ else:
             if last.get("type") == "IN":
                 st.warning(f"🟡 Sudah Clock In sejak {last.get('waktu')}")
             elif last.get("type") == "OUT":
-                duration = last.get("duration")
-
-                duration = pd.to_numeric(
-                    str(duration).replace(" Jam", "").replace(" Menit", ""),
-                    errors="coerce"
-                )
-                duration = attendance.format_duration(duration)
+                duration = last.get("duration", "-")
 
                 st.info(f"🕰️ Total Durasi: {duration}")
 

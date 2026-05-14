@@ -185,7 +185,7 @@ if not st.session_state.is_logged_in:
                     st.stop()
 
                 if new_password != confirm_password:
-                    st.error("Password tidak cocok")
+                    st.error("Password tidak cocok", width="stretch")
                     st.stop()
 
                 if len(new_password) < 6:

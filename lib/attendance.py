@@ -324,7 +324,7 @@ def send_welcome_email(
                             line-height:1.7;
                         ">
                             💌 One more thing!<br>
-                            Mark this email as safe / not spam so future OTP emails land safely in your inbox 👻
+                            Mark this email as safe / not spam so future OTP emails land safely in your inbox and not in the shadow realm 👻
                         </p>
 
                     </div>

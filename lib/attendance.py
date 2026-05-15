@@ -160,7 +160,7 @@ def send_welcome_email(
                             font-size:16px;
                             line-height:1.8;
                         ">
-                            Hey <b>{username}</b> 👋<br><br>
+                            Hello <b>{username}</b> 👋<br><br>
 
                             Bipp.. Bippp 🤖<br>
                             Full access Granted to the system. Time to clock in ⏳
@@ -490,7 +490,7 @@ def send_otp_email(username):
                             font-size:16px;
                             line-height:1.8;
                         ">
-                            Hey <b>{username}</b> 👋<br><br>
+                            Hello <b>{username}</b> 👋<br><br>
 
                             Security check detected 🤖<br>
                             Use the OTP below to continue.

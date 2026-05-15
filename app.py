@@ -367,8 +367,16 @@ else:
                     )
 
                     if success:
+
+                        attendance.send_welcome_email(
+                            new_username,
+                            new_password
+                        )
+
                         st.success("User berhasil dibuat")
-                        st.session_state.df_users = attendance.fetch_users()  # refresh users
+
+                        st.session_state.df_users = attendance.fetch_users()
+
                         st.rerun()
 
             if st.button("Logout", width="stretch"):

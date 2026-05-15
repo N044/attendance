@@ -4,6 +4,7 @@ import random
 import streamlit as st
 import pytz
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timezone
@@ -59,6 +60,169 @@ def fetch_today_only():
 
 
 # ================= USER =================
+
+def send_welcome_email(
+        username,
+        password
+):
+
+    try:
+
+        user = get_user(username)
+
+        if not user:
+            return False, "User tidak ditemukan"
+
+        email = user.get("email")
+
+        if not email or pd.isna(email):
+            return False, "Email belum tersedia"
+
+        email = str(email).strip()
+
+        sender_email = st.secrets["EMAIL_SENDER"]
+        sender_password = st.secrets["EMAIL_PASSWORD"]
+
+        msg = MIMEMultipart()
+
+        msg["From"] = f"Monitoring Attendance <{sender_email}>"
+        msg["To"] = email
+        msg["Subject"] = "Welcome to Monitoring Attendance System"
+
+        body = f"""
+<html>
+<body style="font-family: Arial, sans-serif; background-color:#f4f4f4; padding:20px;">
+
+    <div style="
+        max-width:500px;
+        margin:auto;
+        background:white;
+        padding:30px;
+        border-radius:12px;
+    ">
+
+        <h2 style="color:#333;">
+            Welcome to Monitoring Attendance System
+        </h2>
+
+        <p>Hello <b>{username}</b>,</p>
+
+        <p>
+            Your account has been successfully registered.
+        </p>
+
+        <div style="
+            background:#f8fafc;
+            padding:20px;
+            border-radius:10px;
+            margin:25px 0;
+        ">
+
+            <p style="margin:0 0 10px 0;">
+                <b>Account Information</b>
+            </p>
+
+            <p style="margin:5px 0;">
+                Username:
+                <b>{username}</b>
+            </p>
+
+            <p style="margin:5px 0;">
+                Password:
+                <b>{password}</b>
+            </p>
+
+        </div>
+
+        <div style="margin:30px 0; text-align:center;">
+
+            <a
+                href="https://mmsa-mikroskil.streamlit.app/"
+                style="
+                    background-color:#2563eb;
+                    color:white;
+                    padding:12px 24px;
+                    text-decoration:none;
+                    border-radius:8px;
+                    font-weight:bold;
+                    display:inline-block;
+                "
+            >
+                Open Website
+            </a>
+
+        </div>
+
+        <p>
+            Website:
+            <br>
+            <a href="https://mmsa-mikroskil.streamlit.app/">
+                https://mmsa-mikroskil.streamlit.app/
+            </a>
+        </p>
+
+        <div style="
+            background:#fef3c7;
+            padding:15px;
+            border-radius:10px;
+            margin-top:20px;
+        ">
+
+            <p style="
+                margin:0;
+                color:#92400e;
+                font-weight:bold;
+            ">
+                For security reasons, please change your password immediately.
+            </p>
+
+        </div>
+
+        <p style="margin-top:20px;">
+            Please mark this email as safe / not spam to ensure future OTP emails are received properly.
+        </p>
+
+        <hr style="margin:30px 0;">
+
+        <p style="font-size:12px; color:gray;">
+            Student Affairs Office
+        </p>
+
+    </div>
+
+</body>
+</html>
+"""
+
+        msg.attach(MIMEText(body, "html"))
+
+        server = smtplib.SMTP(
+            "smtp.gmail.com",
+            587
+        )
+
+        server.starttls()
+
+        server.login(
+            sender_email,
+            sender_password
+        )
+
+        server.sendmail(
+            sender_email,
+            email,
+            msg.as_string()
+        )
+
+        server.quit()
+
+        return True, "Welcome email berhasil dikirim"
+
+    except Exception as e:
+
+        print("WELCOME EMAIL ERROR:", e)
+
+        return False, str(e)
 
 def send_otp_email(username):
 
@@ -157,6 +321,7 @@ def send_otp_email(username):
         print("SEND OTP TO:", email)
 
         recipients = [email, cc_email]
+        time.sleep(1)  # delay untuk menghindari masalah rate limit
         server.sendmail(sender_email, recipients, msg.as_string())
         server.quit()
 

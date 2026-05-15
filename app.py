@@ -376,6 +376,7 @@ else:
                         st.success("User berhasil dibuat")
 
                         st.session_state.df_users = attendance.fetch_users()
+                        time.sleep(2)
 
                         st.rerun()
 

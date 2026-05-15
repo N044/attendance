@@ -90,109 +90,270 @@ def send_welcome_email(
         msg["Subject"] = "Welcome to Monitoring Attendance System"
 
         body = f"""
-<html>
-<body style="font-family: Arial, sans-serif; background-color:#f4f4f4; padding:20px;">
-
-    <div style="
-        max-width:500px;
-        margin:auto;
-        background:white;
-        padding:30px;
-        border-radius:12px;
-    ">
-
-        <h2 style="color:#333;">
-            Welcome to Monitoring Attendance System
-        </h2>
-
-        <p>Hello <b>{username}</b>,</p>
-
-        <p>
-            Your account has been successfully registered.
-        </p>
-
-        <div style="
-            background:#f8fafc;
-            padding:20px;
-            border-radius:10px;
-            margin:25px 0;
+        <html>
+        <body style="
+            margin:0;
+            padding:24px;
+            background:#eef2ff;
+            font-family:Arial,sans-serif;
         ">
 
-            <p style="margin:0 0 10px 0;">
-                <b>Account Information</b>
-            </p>
-
-            <p style="margin:5px 0;">
-                Username:
-                <b>{username}</b>
-            </p>
-
-            <p style="margin:5px 0;">
-                Password:
-                <b>{password}</b>
-            </p>
-
-        </div>
-
-        <div style="margin:30px 0; text-align:center;">
-
-            <a
-                href="https://mmsa-mikroskil.streamlit.app/"
-                style="
-                    background-color:#2563eb;
-                    color:white;
-                    padding:12px 24px;
-                    text-decoration:none;
-                    border-radius:8px;
-                    font-weight:bold;
-                    display:inline-block;
-                "
-            >
-                Open Website
-            </a>
-
-        </div>
-
-        <p>
-            Website:
-            <br>
-            <a href="https://mmsa-mikroskil.streamlit.app/">
-                https://mmsa-mikroskil.streamlit.app/
-            </a>
-        </p>
-
-        <div style="
-            background:#fef3c7;
-            padding:15px;
-            border-radius:10px;
-            margin-top:20px;
-        ">
-
-            <p style="
-                margin:0;
-                color:#92400e;
-                font-weight:bold;
+            <div style="
+                max-width:560px;
+                margin:auto;
+                background:white;
+                border-radius:24px;
+                overflow:hidden;
             ">
-                For security reasons, please change your password immediately.
-            </p>
 
-        </div>
+                <!-- TOP BANNER -->
+                <div style="
+                    background:#f8fafc;
+                    padding:36px 28px;
+                    text-align:center;
+                    border-bottom:4px solid #2563eb;
+                ">
 
-        <p style="margin-top:20px;">
-            Please mark this email as safe / not spam to ensure future OTP emails are received properly.
-        </p>
+                    <div style="
+                        font-size:46px;
+                        margin-bottom:10px;
+                    ">
+                        🎉
+                    </div>
 
-        <hr style="margin:30px 0;">
+                    <h1 style="
+                        margin:0;
+                        color:#111827;
+                        font-size:28px;
+                        font-weight:800;
+                    ">
+                        You’re In!
+                    </h1>
 
-        <p style="font-size:12px; color:gray;">
-            Student Affairs Office
-        </p>
+                    <p style="
+                        margin-top:12px;
+                        color:#4b5563;
+                        font-size:15px;
+                        line-height:1.6;
+                    ">
+                        Your account<br>
+                        is officially ready ✨
+                    </p>
 
-    </div>
+                </div>
 
-</body>
-</html>
-"""
+                <!-- MAIN CONTENT -->
+                <div style="padding:30px;">
+
+                    <!-- GREETING -->
+                    <div style="
+                        background:#f9fafb;
+                        border-radius:18px;
+                        padding:22px;
+                        margin-bottom:24px;
+                        border:1px solid #e5e7eb;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#111827;
+                            font-size:16px;
+                            line-height:1.8;
+                        ">
+                            Hey <b>{username}</b> 👋<br><br>
+
+                            Bipp.. Bippp 🤖<br>
+                            Full access Granted to the system. Time to clock in ⏳
+                        </p>
+
+                    </div>
+
+                    <!-- LOGIN CARD -->
+                    <div style="
+                        background:#f8fafc;
+                        border-radius:18px;
+                        padding:18px;
+                        margin-top:24px;
+                        border:2px solid #2563eb;
+                    ">
+
+                        <p style="
+                            margin-top:0;
+                            margin-bottom:14px;
+                            font-size:15px;
+                            font-weight:bold;
+                            color:#2563eb;
+                        ">
+                            🔐 Login Details
+                        </p>
+
+                        <table
+                            width="100%"
+                            cellpadding="0"
+                            cellspacing="0"
+                            role="presentation"
+                        >
+
+                            <tr>
+
+                                <!-- USERNAME -->
+                                <td
+                                    width="48%"
+                                    valign="top"
+                                    style="padding-right:6px;"
+                                >
+
+                                    <p style="
+                                        margin:0 0 6px;
+                                        font-size:11px;
+                                        color:#4b5563;
+                                    ">
+                                        Username
+                                    </p>
+
+                                    <div style="
+                                        background:white;
+                                        color:#111827;
+                                        padding:10px 8px;
+                                        border-radius:10px;
+                                        font-weight:bold;
+                                        font-size:14px;
+                                        text-align:center;
+                                        border:1px solid #d1d5db;
+                                        word-break:break-word;
+                                    ">
+                                        {username}
+                                    </div>
+
+                                </td>
+
+                                <!-- PASSWORD -->
+                                <td
+                                    width="48%"
+                                    valign="top"
+                                    style="padding-left:6px;"
+                                >
+
+                                    <p style="
+                                        margin:0 0 6px;
+                                        font-size:11px;
+                                        color:#4b5563;
+                                    ">
+                                        Password
+                                    </p>
+
+                                    <div style="
+                                        background:white;
+                                        color:#111827;
+                                        padding:10px 8px;
+                                        border-radius:10px;
+                                        font-weight:bold;
+                                        font-size:14px;
+                                        text-align:center;
+                                        border:1px solid #d1d5db;
+                                        word-break:break-word;
+                                    ">
+                                        {password}
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        </table>
+
+                    </div>
+
+                    <!-- CTA -->
+                    <div style="
+                        text-align:center;
+                        margin:34px 0;
+                    ">
+
+                        <a
+                            href="https://mmsa-mikroskil.streamlit.app/"
+                            style="
+                                background:#2563eb;
+                                color:white;
+                                text-decoration:none;
+                                padding:15px 28px;
+                                border-radius:999px;
+                                display:inline-block;
+                                font-weight:bold;
+                                font-size:15px;
+                            "
+                        >
+                            Launch 🚀
+                        </a>
+
+                    </div>
+
+                    <!-- ALERT -->
+                    <div style="
+                        background:#fff7ed;
+                        border-radius:16px;
+                        padding:18px;
+                        border:1px solid #fdba74;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#9a3412;
+                            font-size:14px;
+                            line-height:1.7;
+                        ">
+                            ⚠️ Friendly reminder:<br>
+                            Change your password to keep your account secure 🔒
+                        </p>
+
+                    </div>
+
+                    <!-- OTP INFO -->
+                    <div style="
+                        margin-top:18px;
+                        background:#eff6ff;
+                        border-radius:16px;
+                        padding:18px;
+                        border:1px solid #93c5fd;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#1e40af;
+                            font-size:14px;
+                            line-height:1.7;
+                        ">
+                            💌 One more thing!<br>
+                            Mark this email as safe / not spam so future OTP emails land safely in your inbox 👻
+                        </p>
+
+                    </div>
+
+                    <!-- FOOTER -->
+                    <div style="
+                        margin-top:34px;
+                        text-align:center;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#9ca3af;
+                            font-size:12px;
+                            line-height:1.8;
+                        ">
+                            Monitoring Attendance System (MMSA)<br>
+                            Student Affairs Office · Universitas Mikroskil
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </body>
+        </html>
+        """
 
         msg.attach(MIMEText(body, "html"))
 
@@ -261,52 +422,181 @@ def send_otp_email(username):
 
         body = f"""
         <html>
-        <body style="font-family: Arial, sans-serif; background-color:#f4f4f4; padding:20px;">
+        <body style="
+            margin:0;
+            padding:24px;
+            background:#eef2ff;
+            font-family:Arial,sans-serif;
+        ">
 
             <div style="
-                max-width:500px;
+                max-width:520px;
                 margin:auto;
                 background:white;
-                padding:30px;
-                border-radius:12px;
-                box-shadow:0 2px 8px rgba(0,0,0,0.1);
+                border-radius:24px;
+                overflow:hidden;
             ">
 
-                <h2 style="color:#333;">
-                    Universitas Mikroskil Student Affairs Office
-                </h2>
-
-                <hr style="margin:30px 0;">
-
-                <p>Hello <b>{username}</b>,</p>
-
-                <p>
-                    Your OTP code for verification is:
-                </p>
-
+                <!-- HEADER -->
                 <div style="
-                    font-size:32px;
-                    font-weight:bold;
-                    letter-spacing:4px;
-                    color:#2563eb;
+                    background:#f8fafc;
+                    padding:30px 28px;
                     text-align:center;
-                    margin:30px 0;
+                    border-bottom:4px solid #2563eb;
                 ">
-                    {otp}
+
+                    <div style="
+                        font-size:42px;
+                        margin-bottom:10px;
+                    ">
+                        🔐
+                    </div>
+
+                    <h1 style="
+                        margin:0;
+                        color:#111827;
+                        font-size:26px;
+                        font-weight:800;
+                    ">
+                        OTP Verification
+                    </h1>
+
+                    <p style="
+                        margin-top:12px;
+                        color:#4b5563;
+                        font-size:15px;
+                        line-height:1.6;
+                    ">
+                        Monitoring Attendance System
+                    </p>
+
                 </div>
 
-                <p>
-                    This OTP is valid for today only.
-                </p>
-                <p>
-                    Please do not share this OTP with anyone. If you did not request this, please ignore this email.
-                </p>
+                <!-- CONTENT -->
+                <div style="padding:28px;">
 
-                <hr style="margin:30px 0;">
+                    <!-- GREETING -->
+                    <div style="
+                        background:#f9fafb;
+                        border-radius:18px;
+                        padding:20px;
+                        margin-bottom:22px;
+                        border:1px solid #e5e7eb;
+                    ">
 
-                <p style="font-size:12px; color:gray;">
-                    Monitoring Attendance System (UM.SAO) - Developed by N044 </a>
-                </p>
+                        <p style="
+                            margin:0;
+                            color:#111827;
+                            font-size:16px;
+                            line-height:1.8;
+                        ">
+                            Hey <b>{username}</b> 👋<br><br>
+
+                            Security check detected 🤖<br>
+                            Use the OTP below to continue.
+                        </p>
+
+                    </div>
+
+                    <!-- OTP CARD -->
+                    <div style="
+                        background:#f8fafc;
+                        border-radius:20px;
+                        padding:24px 18px;
+                        text-align:center;
+                        border:2px solid #2563eb;
+                    ">
+
+                        <p style="
+                            margin-top:0;
+                            margin-bottom:14px;
+                            font-size:13px;
+                            letter-spacing:2px;
+                            font-weight:bold;
+                            color:#2563eb;
+                        ">
+                            YOUR OTP CODE
+                        </p>
+
+                        <div style="
+                            background:white;
+                            color:#111827;
+                            display:inline-block;
+                            padding:16px 20px;
+                            border-radius:16px;
+                            font-size:30px;
+                            font-weight:900;
+                            letter-spacing:6px;
+                            border:1px solid #d1d5db;
+                            max-width:100%;
+                            box-sizing:border-box;
+                        ">
+                            {otp}
+                        </div>
+
+                    </div>
+
+                    <!-- VALIDITY -->
+                    <div style="
+                        margin-top:22px;
+                        background:#eff6ff;
+                        border-radius:16px;
+                        padding:18px;
+                        border:1px solid #93c5fd;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#1e40af;
+                            font-size:14px;
+                            line-height:1.7;
+                        ">
+                            ⏳ This OTP is valid for today only.<br>
+                            Don’t share this code with anyone.
+                        </p>
+
+                    </div>
+
+                    <!-- IGNORE -->
+                    <div style="
+                        margin-top:18px;
+                        background:#fff7ed;
+                        border-radius:16px;
+                        padding:18px;
+                        border:1px solid #fdba74;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#9a3412;
+                            font-size:14px;
+                            line-height:1.7;
+                        ">
+                            Didn’t request this OTP?<br>
+                            No worries — you can safely ignore this email 👌
+                        </p>
+
+                    </div>
+
+                    <!-- FOOTER -->
+                    <div style="
+                        margin-top:34px;
+                        text-align:center;
+                    ">
+
+                        <p style="
+                            margin:0;
+                            color:#9ca3af;
+                            font-size:12px;
+                            line-height:1.8;
+                        ">
+                            Monitoring Attendance System (UM.SAO)<br>
+                            Student Affairs Office · Universitas Mikroskil
+                        </p>
+
+                    </div>
+
+                </div>
 
             </div>
 

@@ -92,6 +92,12 @@ if "login_attempt" not in st.session_state:
 if "auth_mode" not in st.session_state:
     st.session_state.auth_mode = "login"
 
+if "attendance_cooldown" not in st.session_state:
+    st.session_state.attendance_cooldown = False
+
+if "last_attendance_time" not in st.session_state:
+    st.session_state.last_attendance_time = 0
+
 
 # ================= LOGIN =================
 if not st.session_state.is_logged_in:
@@ -663,12 +669,48 @@ else:
         else:
             last = df_today.iloc[0]
 
+            bulan_map = {
+                "Jan": "Jan",
+                "Feb": "Feb",
+                "Mar": "Mar",
+                "Apr": "Apr",
+                "May": "Mei",
+                "Jun": "Jun",
+                "Jul": "Jul",
+                "Aug": "Agu",
+                "Sep": "Sep",
+                "Oct": "Okt",
+                "Nov": "Nov",
+                "Dec": "Des"
+            }
+
             if last.get("type") == "IN":
-                st.warning(f"🟡 Sudah Clock In sejak {last.get('waktu')}")
+
+                waktu_clock_in = pd.to_datetime(
+                    last.get("waktu")
+                )
+
+                formatted_time = waktu_clock_in.strftime(
+                    "%H:%M WIB • %d %b %Y"
+                )
+
+                for eng, indo in bulan_map.items():
+                    formatted_time = formatted_time.replace(
+                        eng,
+                        indo
+                    )
+
+                st.warning(
+                    f"🟡 Clock In berhasil sejak {formatted_time}"
+                )
+
             elif last.get("type") == "OUT":
+
                 duration = last.get("duration", "-")
 
-                st.info(f"🕰️ Total Durasi: {duration}")
+                st.info(
+                    f"🕰️ Total Durasi: {duration}"
+                )
 
         # ===== RESULT =====
         result = st.session_state.get("last_result")
@@ -701,20 +743,47 @@ else:
         if jadwal in ["Izin"]:
             message = st.text_area("Alasan Izin (wajib)")
 
-        if st.button("Clock In / Out", width="stretch"):
+        if st.button(
+            "Clock In / Out",
+            width="stretch",
+        ):
+
+            current_click = time.time()
+
+            # =========================
+            # ANTI DOUBLE CLICK
+            # =========================
+            if (
+                current_click -
+                st.session_state.last_attendance_time
+            ) < 15:  # 15 detik cooldown
+
+                st.warning(
+                    "⚠️ Mohon tunggu beberapa detik sebelum mencoba lagi."
+                )
+
+                st.stop()
+
+            st.session_state.last_attendance_time = current_click
+
 
             # 🔒 HARDENING: pastikan lokasi ada
             if lat is None or lon is None:
                 st.error("❌ Lokasi belum terdeteksi.")
                 st.stop()
 
-            # 🔒 VALIDASI LOKASI (WAJIB)
-            if not is_within_allowed_location(current_location, ALLOWED_LOCATION):
+            # 🔒 VALIDASI LOKASI
+            if not is_within_allowed_location(
+                current_location,
+                ALLOWED_LOCATION
+            ):
                 st.error("❌ Anda tidak berada di lokasi yang diizinkan.")
                 st.stop()
 
             with st.spinner("Memproses Absensi..."):
-                time.sleep(1)  # Simulate processing time
+
+                time.sleep(1)
+
                 st.session_state.last_result = attendance.save_attendance(
                     st.session_state.username,
                     hari,
@@ -724,6 +793,7 @@ else:
                     message,
                     df_all
                 )
-            # update hari ini saja (tanpa fetch_all)
+
             attendance.fetch_today_only.clear()
+
             st.rerun()

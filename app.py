@@ -163,7 +163,7 @@ if not st.session_state.is_logged_in:
         <style>
         .new-user-link {
             text-align: right;
-            margin-top: 5px;
+            margin-top: 6px;
         }
 
         @media (max-width: 768px) {

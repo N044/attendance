@@ -63,22 +63,11 @@ def fetch_today_only():
 
 def send_welcome_email(
         username,
-        password
+        password,
+        email,
 ):
 
     try:
-
-        user = get_user(username)
-
-        if not user:
-            return False, "User tidak ditemukan"
-
-        email = user.get("email")
-
-        if not email or pd.isna(email):
-            return False, "Email belum tersedia"
-
-        email = str(email).strip()
 
         sender_email = st.secrets["EMAIL_SENDER"]
         sender_password = st.secrets["EMAIL_PASSWORD"]
@@ -704,6 +693,8 @@ def create_user(username, password, is_admin=False, email=""):
         payload["otp_date"] = now_jakarta().strftime("%Y-%m-%d")
 
     success = insert_user(payload)
+
+    fetch_users.clear()
 
     if not success:
         return False

@@ -348,13 +348,21 @@ else:
                     )
 
             with st.expander("👤 User Management"):
-                email = st.text_input("Email")
-                new_username = st.text_input("New Username")
+                email = st.text_input("Email", key="create_email").strip()
+                new_username = st.text_input("New Username", key="create_username").strip()
                 new_password = st.text_input("Password", type="password")
                 confirm_password = st.text_input("Confirm Password", type="password")
                 is_admin = st.checkbox("Admin Access")
 
                 if st.button("Create User", width="stretch"):
+                    if new_username == "":
+                        st.error("Username tidak boleh kosong")
+                        st.stop()
+
+                    if email == "":
+                        st.error("Email wajib diisi")
+                        st.stop()
+
                     if new_password != confirm_password:
                         st.error("Password tidak cocok")
                         st.stop()
@@ -370,10 +378,11 @@ else:
 
                         attendance.send_welcome_email(
                             new_username,
-                            new_password
+                            new_password,
+                            email
                         )
 
-                        st.success("User berhasil dibuat")
+                        st.success("User berhasil dibuat & Welcome Email Terkirim")
 
                         st.session_state.df_users = attendance.fetch_users()
                         time.sleep(2)

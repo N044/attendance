@@ -150,34 +150,46 @@ if not st.session_state.is_logged_in:
         col3, col4 = st.columns([1, 1])
 
         with col3:
+
             remember_me = st.checkbox(
-                "Remember Me"
+                "Remember Me",
+                key="remember_me_login"
             )
 
         with col4:
-            st.caption("‎ ")
+
             st.markdown(
                 """
-            <div style="
-                text-align:right;
-                margin-top:-38px;
-                margin-bottom:18px;
-            ">
-                <a
-                    href="mailto:sa.officemikroskil@gmail.com?cc=noah.napitupulu@mikroskil.ac.id&subject=Permohonan%20Pembuatan%20Akun%20MMSA%20-%20[Your%20Name]&body=Dear%20Bapak/Ibu%20%0AStudent%20Affairs%20Office,%0A%0APerkenalkan,%20melalui%20email%20ini%20saya%20ingin%20mengajukan%20pembuatan%20akun%20untuk%20mengakses%20Mikroskil%20Monitoring%20Attendance%20System%20(MMSA).%0A%0ABerikut%20data%20diri%20saya:%0A-%20Nama%20Lengkap:%0A-%20NIM:%0A-%20Email%20Students:%0A%0AData%20yang%20saya%20berikan%20di%20atas%20telah%20sesuai%20dan%20email%20ini%20saya%20kirimkan%20menggunakan%20email%20student%20saya.%20Mohon%20bantuannya%20agar%20permohonan%20ini%20dapat%20diproses.%0A%0ATerima%20kasih.%0A%0ABest%20Regards,%0A[Your%20Name]"
-                    style="
-                        text-decoration:none;
-                        font-size:15px;
-                        color:#2563eb;
-                        font-weight:500;
-                    "
-                >
-                    New User? Click Me →
-                </a>
-            </div>
+        <style>
+        .new-user-link {
+            text-align: right;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .new-user-link {
+                margin-top: -50px;
+            }
+        }
+        </style>
+
+        <div class="new-user-link">
+            <a
+                href="mailto:sa.officemikroskil@gmail.com?cc=noah.napitupulu@mikroskil.ac.id&subject=Permohonan%20Pembuatan%20Akun%20MMSA"
+                style="
+                    text-decoration:none;
+                    font-size:15px;
+                    color:#2563eb;
+                    font-weight:500;
+                "
+            >
+                New User? Click Me →
+            </a>
+        </div>
                 """,
                 unsafe_allow_html=True
             )
+
 
         # =========================
         # LOGIN BUTTON

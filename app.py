@@ -183,7 +183,7 @@ if not st.session_state.is_logged_in:
                     font-weight:500;
                 "
             >
-                New User? Click Me →
+                New User? Click Me
             </a>
         </div>
                 """,

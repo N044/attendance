@@ -96,7 +96,6 @@ if "auth_mode" not in st.session_state:
 # ================= LOGIN =================
 if not st.session_state.is_logged_in:
 
-    st.divider()
     st.title("Mikroskil - Monitoring System Attendance (MMSA)")
     st.caption("Copyright © 2026 Student Affairs Office (N044)")
     st.divider()
@@ -104,23 +103,104 @@ if not st.session_state.is_logged_in:
     # ===== LOGIN MODE =====
     if st.session_state.auth_mode == "login":
 
-        username = st.text_input("Username").strip()
-        password = st.text_input("Password", type="password")
-        otp_input = st.text_input("OTP (One Time Password)", type="password")
+        # =========================
+        # USERNAME & PASSWORD
+        # =========================
+        col1, col2 = st.columns(2)
 
+        with col1:
+            username = st.text_input(
+                "Username",
+                placeholder="Enter username"
+            ).strip()
+
+        with col2:
+            password = st.text_input(
+                "Password",
+                type="password",
+                placeholder="Enter password"
+            )
+
+        # =========================
+        # CHECK USER
+        # =========================
+        user = attendance.get_user(username) if username else None
+
+        is_admin_user = False
+
+        if user:
+            is_admin_user = user.get("isadmin", False)
+
+        # =========================
+        # OTP (NON ADMIN ONLY)
+        # =========================
+        if not is_admin_user:
+
+            otp_input = st.text_input(
+                "OTP Verification Code",
+                placeholder="Enter OTP code"
+            )
+
+        else:
+            otp_input = ""
+
+        # =========================
+        # REMEMBER ME + NEW USER
+        # =========================
+        col3, col4 = st.columns([1, 1])
+
+        with col3:
+            remember_me = st.checkbox(
+                "Remember Me"
+            )
+
+        with col4:
+            st.markdown(
+                """
+    <div style="
+        text-align:right;
+        padding-top:10px;
+    ">
+        <a
+            href="mailto:sa.officemikroskil@gmail.com?cc=noah.napitupulu@mikroskil.ac.id&subject=Permohonan%20Pembuatan%20Akun%20MMSA%20-%20[Your%20Name]&body=Dear%20Bapak/Ibu%20%0AStudent%20Affairs%20Office,%0A%0APerkenalkan,%20melalui%20email%20ini%20saya%20ingin%20mengajukan%20pembuatan%20akun%20untuk%20mengakses%20Mikroskil%20Monitoring%20Attendance%20System%20(MMSA).%0A%0ABerikut%20data%20diri%20saya:%0A-%20Nama%20Lengkap:%0A-%20NIM:%0A-%20Email%20Students:%0A%0AData%20yang%20saya%20berikan%20di%20atas%20telah%20sesuai%20dan%20email%20ini%20saya%20kirimkan%20menggunakan%20email%20student%20saya.%20Mohon%20bantuannya%20agar%20permohonan%20ini%20dapat%20diproses.%0A%0ATerima%20kasih.%0A%0ABest%20Regards,%0A[Your%20Name]"
+            style="
+                text-decoration:none;
+                font-size:14px;
+                color:#2563eb;
+                font-weight:500;
+            "
+        >
+            New User? Click Me
+        </a>
+    </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+        # =========================
+        # LOGIN BUTTON
+        # =========================
         if st.button("Login", width="stretch"):
 
-            user = attendance.get_user(username)
-
+            # ===== USER CHECK =====
             if not user:
                 st.session_state.login_attempt += 1
-                st.error(f"Username tidak ditemukan ({st.session_state.login_attempt}/3)")
+
+                st.error(
+                    f"Username tidak ditemukan "
+                    f"({st.session_state.login_attempt}/3)"
+                )
+
                 if st.session_state.login_attempt >= 3:
                     st.session_state.auth_mode = "reset"
                     st.rerun()
+
                 st.stop()
 
-            stored_hash = str(user.get("passwordhash", "")).strip()
+            # ===== PASSWORD CHECK =====
+            stored_hash = str(
+                user.get("passwordhash", "")
+            ).strip()
 
             if not stored_hash:
                 st.error("Password belum diset")
@@ -131,39 +211,68 @@ if not st.session_state.is_logged_in:
                 st.stop()
 
             try:
-                if not bcrypt.checkpw(password.encode(), stored_hash.encode()):
+
+                if not bcrypt.checkpw(
+                    password.encode(),
+                    stored_hash.encode()
+                ):
+
                     st.session_state.login_attempt += 1
-                    st.error(f"Password salah ({st.session_state.login_attempt}/3)")
+
+                    st.error(
+                        f"Password salah "
+                        f"({st.session_state.login_attempt}/3)"
+                    )
+
                     if st.session_state.login_attempt >= 3:
                         st.session_state.auth_mode = "reset"
                         st.rerun()
+
                     st.stop()
+
             except ValueError:
                 st.error("Hash password invalid")
                 st.stop()
 
-            # OTP (non admin)
-            if not user.get("isadmin"):
-                if not otp_input:
+            # ===== OTP CHECK =====
+            if not is_admin_user:
+
+                if not otp_input.strip():
                     st.error("OTP wajib diisi")
                     st.stop()
 
-                if not attendance.validate_otp(username, otp_input):
+                if not attendance.validate_otp(
+                    username,
+                    otp_input
+                ):
+
                     st.session_state.login_attempt += 1
-                    st.error(f"OTP salah ({st.session_state.login_attempt}/3)")
+
+                    st.error(
+                        f"OTP salah "
+                        f"({st.session_state.login_attempt}/3)"
+                    )
+
                     if st.session_state.login_attempt >= 3:
                         st.session_state.auth_mode = "reset"
                         st.rerun()
+
                     st.stop()
 
-            # SUCCESS
+            # ===== LOGIN SUCCESS =====
             st.session_state.login_attempt = 0
+
             st.session_state.is_logged_in = True
-
             st.session_state.username = username
-            st.session_state.is_admin = user.get("isadmin", False)
+            st.session_state.is_admin = is_admin_user
 
-            st.success("Login berhasil!")
+            if remember_me:
+                st.session_state.remember_me = True
+
+            st.success("✅ Login berhasil!")
+
+            time.sleep(1)
+
             st.rerun()
 
     # ===== RESET MODE =====

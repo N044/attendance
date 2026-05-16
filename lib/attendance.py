@@ -26,6 +26,25 @@ def fetch_users():
     
     return pd.DataFrame(res.data)
 
+@st.cache_data
+def is_admin(username):
+
+    users = fetch_users()
+
+    if users.empty:
+        return False
+
+    user = users[
+        users["username"] == username
+    ]
+
+    if user.empty:
+        return False
+
+    return bool(
+        user.iloc[0]["isadmin"]
+    )
+
 
 @st.cache_data(ttl=3600) # cache selama 1 jam
 def fetch_all():
